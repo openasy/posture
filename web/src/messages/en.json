@@ -1,0 +1,180 @@
+{
+  "sevCounts": {
+    "none": "None"
+  },
+  "findingPanel": {
+    "details": "{{rule}} details",
+    "closeDetails": "Close details",
+    "compensatingControl": "Compensating control",
+    "falsePositive": "False positive",
+    "acceptedRisk": "Accepted risk",
+    "acceptanceExpired": "Acceptance expired",
+    "until": ", until {{value}}",
+    "changeDecision": "Change decision",
+    "triage": "Triage",
+    "openAgain": "Open again",
+    "triage2": "Triage {{rule}}",
+    "theDecisionStaysWithThis": "The decision stays with this finding across reports, so it does not fail the next check. Say why, for the next review.",
+    "cancel": "Cancel",
+    "saveDecision": "Save decision",
+    "decision": "Decision",
+    "compensatingControlSomethingElseCovers": "Compensating control: something else covers it",
+    "reason": "Reason",
+    "whyForTheNextReview": "Why, for the next review.",
+    "for": "For",
+    "n30Days": "30 days",
+    "n90Days": "90 days",
+    "n180Days": "180 days",
+    "n1Year": "1 year"
+  },
+  "findingsTable": {
+    "severity": "Severity",
+    "rule": "Rule",
+    "resource": "Resource",
+    "engine": "Engine",
+    "target": "Target",
+    "firstSeen": "First seen",
+    "findingViews": "Finding views",
+    "open": "Open",
+    "decided": "Decided",
+    "fixed": "Fixed",
+    "benchmark": "Benchmark",
+    "section": "Section",
+    "searchRuleControlResourceOr": "Search rule, control, resource or message",
+    "controlsThatFailMostSevere": "Controls that fail, most severe first",
+    "loadMore": "Load more",
+    "findings": "Findings",
+    "noOpenFindings": "No open findings",
+    "nothingTriaged": "Nothing triaged",
+    "nothingFixedYet": "Nothing fixed yet",
+    "sendAReportToSee": "Send a report to see findings. See",
+    "setup": "Setup",
+    "nothingMatchesTheseFilters": "Nothing matches these filters."
+  },
+  "hostsCoverageNote": {
+    "itsLastGoodVersionIs": "{{error}}Its last good version is used until it is fixed ({{path}}).",
+    "theHostsFileIsNot": "The hosts file is not applied",
+    "inTheHostsFileNo": "{{length}} {{value}} in the hosts file {{value2}} no posture scan"
+  },
+  "findingsPage": {
+    "findings": "Findings",
+    "lastReport": "{{plural}} · last report {{ago}}",
+    "averageScore": "Average score",
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "failedChecks7Days": "Failed checks, 7 days"
+  },
+  "checkStatus": {
+    "passed": "Passed",
+    "failed": "Failed"
+  },
+  "scoreBadge": {
+    "noScore": "No score"
+  },
+  "trend": {
+    "theTrendAppearsWithThe": "The trend appears with the second report that has a check count.",
+    "scoreFromToOverReports": "Score from {{score}}% to {{score2}}% over {{length}} reports",
+    "onOfPassed": "{{score}}% on {{value}} ({{engine}}, {{passed}} of {{total}} passed)",
+    "onToOn": "{{score}}% on {{value}}to {{score2}}% on {{value2}}"
+  },
+  "targetsPage": {
+    "target": "Target",
+    "kind": "Kind",
+    "benchmark": "Benchmark",
+    "score": "Score",
+    "failing": "Failing",
+    "check": "Check",
+    "targets": "Targets",
+    "aCloudAccountAKubernetes": "A cloud account, a Kubernetes cluster or a group of hosts whose configuration is judged against a benchmark.",
+    "addTarget": "Add target",
+    "noTargetsYet": "No targets yet",
+    "addTheClusterAccountOr": "Add the cluster, account or hosts you check.",
+    "anAdminAddsWhatIs": "An admin adds what is checked.",
+    "addATarget": "Add a target",
+    "reportsAreSentForIt": "Reports are sent for it by name.",
+    "cancel": "Cancel",
+    "name": "Name",
+    "lettersDigitsAndCiSends": "Letters, digits, . _ and -. CI sends reports by this name.",
+    "optionalSuchAsCisKubernetes": "Optional, such as CIS Kubernetes 1.9."
+  },
+  "targetPage": {
+    "targetNotFound": "Target not found",
+    "itMayHaveBeenDeleted": "It may have been deleted.",
+    "backToTargets": "Back to targets",
+    "report": "Report",
+    "engine": "Engine",
+    "score": "Score",
+    "failing": "Failing",
+    "new": "New",
+    "fixed": "Fixed",
+    "check": "Check",
+    "target": "Target",
+    "scoreOverTime": "Score over time",
+    "theShareOfChecksThat": "The share of checks that passed in each report that gave a count.",
+    "policy": "Policy",
+    "whatACheckTreatsAs": "What a check treats as a failure. Only failed controls an engine did not report before, and nobody has decided about, can fail it.",
+    "failTheCheckFor": "Fail the check for",
+    "benchmark": "Benchmark",
+    "aLabelSuchAsCis": "A label, such as CIS Kubernetes 1.9.",
+    "savePolicy": "Save policy",
+    "deleteTarget": "Delete target",
+    "delete": "Delete {{name}}?",
+    "itsReportsFindingsAndDecisions": "Its reports, findings and decisions are deleted. A later report needs the target added again.",
+    "cancel": "Cancel",
+    "delete2": "Delete",
+    "reports": "Reports",
+    "noReports": "No reports",
+    "nothingHasBeenSentFor": "Nothing has been sent for this target."
+  },
+  "setupPage": {
+    "setup": "Setup",
+    "runTrivyKubescapeCheckovOr": "Run Trivy, kubescape, checkov or Prowler against what you check, and send the report here. The answer says whether the check passes.",
+    "sendAReport": "Send a report",
+    "addTheTargetFirstUse": "Add the target first. Use POSTURE_INGEST_TOKEN, set where posture runs, or an API token with the editor role from API tokens.",
+    "howAReportIsCompared": "How a report is compared",
+    "eachEngineSReportsReplace": "Each engine's reports replace its own earlier ones. A control that stops failing is fixed; one that fails for the first time is new.",
+    "theFirstReportOfAn": "The first report of an engine for a target adopts what is there and never fails a check.",
+    "aFailedControlIsFound": "A failed control is found again by rule and resource.",
+    "theScoreIsTheShare": "The score is the share of checks that passed: from the report's own summary (run property summary with passed, failed and total), or from its results of kind pass.",
+    "benchmarkControlAndSectionAre": "Benchmark, control and section are kept when the report has them (properties benchmark, control, section), so findings can be filtered by them.",
+    "aCompensatingControlAFalse": "A compensating control, a false positive or an accepted risk stays with the finding, with a reason."
+  },
+  "welcomePage": {
+    "getStarted": "Get started",
+    "addWhatYouCheckAnd": "Add what you check, and send a report.",
+    "waitingForTheFirstTarget": "Waiting for the first target"
+  },
+  "settingsPage": {
+    "adminsOnly": "Admins only",
+    "askAnAdminOfThis": "Ask an admin of this posture for access.",
+    "signOut": "Sign out"
+  },
+  "product": {
+    "findings": "Findings",
+    "targets": "Targets",
+    "setup": "Setup",
+    "members": "Members",
+    "signIn": "Sign-in",
+    "apiTokens": "API tokens",
+    "account": "Account"
+  },
+  "failOn": {
+    "critical": "Critical",
+    "highOrWorse": "High or worse",
+    "mediumOrWorse": "Medium or worse",
+    "anyFinding": "Any finding",
+    "neverFail": "Never fail"
+  },
+  "kindLabel": {
+    "cloudAccount": "Cloud account",
+    "kubernetesCluster": "Kubernetes cluster"
+  },
+  "plurals": {
+    "target_one": "{{count}} target",
+    "target_other": "{{count}} targets",
+    "failingControl_one": "{{count}} failing control",
+    "failingControl_other": "{{count}} failing controls"
+  }
+}

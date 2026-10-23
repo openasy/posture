@@ -26,22 +26,13 @@ import {
   type Column,
   type ProductId,
   useThemePreference,
+  useAgo,
 } from "@openasy/ui";
 import { AccountSettings, AuthGate, MembersSettings, SignInSettings, TokensSettings, useAuth } from "@openasy/auth/react";
 import { Bug, CircleSlash, Crosshair, KeyRound, LogIn, LogOut, Plus, Settings2, Trash2, UserRound, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { api, MfaSetupRequired, Unauthorized, type FailOn, type Finding, type History, type Kind, type ProductLink, type Scan, type Severity, type HostsCoverage, type Summary, type Target } from "./api.ts";
-
-function ago(iso: string | null | undefined): string {
-  if (!iso) return "never";
-  const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (s < 86_400) return `${Math.round(s / 3600)} h ago`;
-  return `${Math.round(s / 86_400)} d ago`;
-}
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+import { useT, type T } from "./i18n.ts";
 
 const PAGES = ["targets", "setup", "account", "members", "signin", "tokens"] as const;
 type Route = { page: "findings" | (typeof PAGES)[number] } | { page: "target"; id: string };
@@ -73,18 +64,19 @@ function useApi() {
 type Call = ReturnType<typeof useApi>;
 
 const SEVERITIES: Severity[] = ["critical", "high", "medium", "low"];
-const FAIL_ON: Array<{ value: FailOn; label: string }> = [
-  { value: "critical", label: "Critical" },
-  { value: "high", label: "High or worse" },
-  { value: "medium", label: "Medium or worse" },
-  { value: "low", label: "Any finding" },
-  { value: "none", label: "Never fail" },
-];
+const FAIL_ON = (t: T): Array<{ value: FailOn; label: string }> => ([
+  { value: "critical", label: t("failOn.critical") },
+  { value: "high", label: t("failOn.highOrWorse") },
+  { value: "medium", label: t("failOn.mediumOrWorse") },
+  { value: "low", label: t("failOn.anyFinding") },
+  { value: "none", label: t("failOn.neverFail") },
+]);
 
 /** Compact severity counts; each badge carries the full name for screen readers. */
 function SevCounts({ counts }: { counts: Record<Severity, number> }) {
+  const t = useT();
   const shown = SEVERITIES.filter((s) => counts[s] > 0);
-  if (!shown.length) return <span className="text-xs text-fg-muted">None</span>;
+  if (!shown.length) return <span className="text-xs text-fg-muted">{t("sevCounts.none")}</span>;
   return (
     <span className="flex flex-wrap gap-1">
       {shown.map((s) => (
@@ -102,6 +94,8 @@ function Code({ children }: { children: ReactNode }) {
 }
 
 function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding; call: Call; onClose: () => void; onChanged: () => void }) {
+  const ago = useAgo();
+  const msg = useT();
   const { can } = useAuth();
   const [deciding, setDeciding] = useState(false);
   const [state, setState] = useState<"false-positive" | "accepted" | "compensating">("compensating");
@@ -126,11 +120,11 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
 
   return (
     <Panel
-      aria-label={`${finding.rule} details`}
+      aria-label={msg("findingPanel.details", { rule: finding.rule })}
       title={<span className="posture-wrap font-mono text-sm">{finding.rule}</span>}
       description={`${finding.target.name} · ${finding.engine}`}
       actions={
-        <IconButton label="Close details" size="sm" onClick={onClose}>
+        <IconButton label={msg("findingPanel.closeDetails")} size="sm" onClick={onClose}>
           <X />
         </IconButton>
       }
@@ -147,24 +141,24 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
         {t && (
           <div className="flex flex-col gap-1 rounded-md border border-line p-2.5 text-xs">
             <span>
-              <StatusBadge tone={t.active ? "success" : "neutral"}>{t.state === "compensating" ? "Compensating control" : t.state === "false-positive" ? "False positive" : t.active ? "Accepted risk" : "Acceptance expired"}</StatusBadge>
+              <StatusBadge tone={t.active ? "success" : "neutral"}>{t.state === "compensating" ? msg("findingPanel.compensatingControl") : t.state === "false-positive" ? msg("findingPanel.falsePositive") : t.active ? msg("findingPanel.acceptedRisk") : msg("findingPanel.acceptanceExpired")}</StatusBadge>
             </span>
             <span>{t.reason}</span>
             <span className="text-fg-muted">
               {t.by ? `${t.by}, ` : ""}
               {ago(t.at)}
-              {t.expiresAt ? `, until ${new Date(t.expiresAt).toLocaleDateString()}` : ""}
+              {t.expiresAt ? msg("findingPanel.until", { value: new Date(t.expiresAt).toLocaleDateString() }) : ""}
             </span>
           </div>
         )}
         {can("editor") && (
           <div className="flex gap-2 border-t border-line pt-3">
             <Button size="sm" icon={<CircleSlash />} onClick={() => setDeciding(true)}>
-              {t ? "Change decision" : "Triage"}
+              {t ? msg("findingPanel.changeDecision") : msg("findingPanel.triage")}
             </Button>
             {t && (
               <Button size="sm" onClick={() => void reopen()}>
-                Open again
+                {msg("findingPanel.openAgain")}
               </Button>
             )}
           </div>
@@ -172,41 +166,41 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
         <Dialog
           open={deciding}
           onOpenChange={(open) => !open && close()}
-          title={`Triage ${finding.rule}`}
-          description="The decision stays with this finding across reports, so it does not fail the next check. Say why, for the next review."
+          title={msg("findingPanel.triage2", { rule: finding.rule })}
+          description={msg("findingPanel.theDecisionStaysWithThis")}
           onSubmit={decide}
           footer={
             <>
               <Button type="button" onClick={close}>
-                Cancel
+                {msg("findingPanel.cancel")}
               </Button>
               <Button type="submit" variant="primary" disabled={reason.trim().length < 3}>
-                Save decision
+                {msg("findingPanel.saveDecision")}
               </Button>
             </>
           }
         >
           <SelectField
-            label="Decision"
+            label={msg("findingPanel.decision")}
             value={state}
             onChange={(e) => setState(e.target.value as typeof state)}
             options={[
-              { value: "compensating", label: "Compensating control: something else covers it" },
-              { value: "false-positive", label: "False positive" },
-              { value: "accepted", label: "Accepted risk" },
+              { value: "compensating", label: msg("findingPanel.compensatingControlSomethingElseCovers") },
+              { value: "false-positive", label: msg("findingPanel.falsePositive") },
+              { value: "accepted", label: msg("findingPanel.acceptedRisk") },
             ]}
           />
-          <TextField label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} hint="Why, for the next review." error={error} />
+          <TextField label={msg("findingPanel.reason")} value={reason} onChange={(e) => setReason(e.target.value)} hint={msg("findingPanel.whyForTheNextReview")} error={error} />
           {state === "accepted" && (
             <SelectField
-              label="For"
+              label={msg("findingPanel.for")}
               value={days}
               onChange={(e) => setDays(e.target.value)}
               options={[
-                { value: "30", label: "30 days" },
-                { value: "90", label: "90 days" },
-                { value: "180", label: "180 days" },
-                { value: "365", label: "1 year" },
+                { value: "30", label: msg("findingPanel.n30Days") },
+                { value: "90", label: msg("findingPanel.n90Days") },
+                { value: "180", label: msg("findingPanel.n180Days") },
+                { value: "365", label: msg("findingPanel.n1Year") },
               ]}
             />
           )}
@@ -220,6 +214,8 @@ type Tab = "open" | "suppressed" | "resolved";
 
 /** Findings of every target, or of one when targetId is given. */
 function FindingsTable({ call, targetId, summary, reload }: { call: Call; targetId?: string; summary?: { open: Record<Severity, number> }; reload: () => void }) {
+  const ago = useAgo();
+  const t = useT();
   const [tab, setTab] = useState<Tab>("open");
   const [sev, setSev] = useState<string[]>([]);
   const [q, setQ] = useState("");
@@ -251,10 +247,10 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
   const loadMore = () => more && query(more).then((r) => (setRows((x) => [...(x ?? []), ...r.findings]), setMore(r.nextCursor)));
 
   const columns: Column<Finding>[] = [
-    { id: "sev", header: "Severity", width: "104px", cell: (f) => <SeverityBadge severity={f.severity} /> },
+    { id: "sev", header: t("findingsTable.severity"), width: "104px", cell: (f) => <SeverityBadge severity={f.severity} /> },
     {
       id: "rule",
-      header: "Rule",
+      header: t("findingsTable.rule"),
       width: "30%",
       cell: (f) => (
         <span className="flex min-w-0 flex-col">
@@ -269,7 +265,7 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
     },
     {
       id: "where",
-      header: "Resource",
+      header: t("findingsTable.resource"),
       width: "32%",
       cell: (f) => (
         <span className="posture-wrap font-mono text-xs">
@@ -278,44 +274,44 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
         </span>
       ),
     },
-    { id: "engine", header: "Engine", cell: (f) => <Badge>{f.engine}</Badge> },
-    ...(targetId ? [] : [{ id: "target", header: "Target", cell: (f: Finding) => <span className="text-xs">{f.target.name}</span> } satisfies Column<Finding>]),
-    { id: "seen", header: "First seen", sortValue: (f) => f.firstSeen, cell: (f) => <span className="text-xs whitespace-nowrap">{ago(f.firstSeen)}</span> },
+    { id: "engine", header: t("findingsTable.engine"), cell: (f) => <Badge>{f.engine}</Badge> },
+    ...(targetId ? [] : [{ id: "target", header: t("findingsTable.target"), cell: (f: Finding) => <span className="text-xs">{f.target.name}</span> } satisfies Column<Finding>]),
+    { id: "seen", header: t("findingsTable.firstSeen"), sortValue: (f) => f.firstSeen, cell: (f) => <span className="text-xs whitespace-nowrap">{ago(f.firstSeen)}</span> },
   ];
 
   return (
     <>
       <Tabs<Tab>
-        label="Finding views"
+        label={t("findingsTable.findingViews")}
         value={tab}
         onChange={setTab}
         items={[
-          { value: "open", label: "Open" },
-          { value: "suppressed", label: "Decided" },
-          { value: "resolved", label: "Fixed" },
+          { value: "open", label: t("findingsTable.open") },
+          { value: "suppressed", label: t("findingsTable.decided") },
+          { value: "resolved", label: t("findingsTable.fixed") },
         ]}
       />
       <FilterBar onClear={() => (setSev([]), setQ(""), setBenchmark([]), setSection([]))}>
-        <FacetFilter label="Severity" selected={sev} onChange={setSev} options={SEVERITIES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1), count: tab === "open" ? summary?.open[s] : undefined }))} />
-        {facets.benchmarks.length > 0 && <FacetFilter label="Benchmark" selected={benchmark} onChange={(v) => setBenchmark(v.slice(-1))} options={facets.benchmarks.map((b) => ({ value: b, label: b }))} />}
-        {facets.sections.length > 0 && <FacetFilter label="Section" selected={section} onChange={(v) => setSection(v.slice(-1))} options={facets.sections.map((b) => ({ value: b, label: b }))} />}
-        <SearchInput label="Search rule, control, resource or message" className="w-64" value={q} onChange={(e) => setQ(e.target.value)} />
+        <FacetFilter label={t("findingsTable.severity")} selected={sev} onChange={setSev} options={SEVERITIES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1), count: tab === "open" ? summary?.open[s] : undefined }))} />
+        {facets.benchmarks.length > 0 && <FacetFilter label={t("findingsTable.benchmark")} selected={benchmark} onChange={(v) => setBenchmark(v.slice(-1))} options={facets.benchmarks.map((b) => ({ value: b, label: b }))} />}
+        {facets.sections.length > 0 && <FacetFilter label={t("findingsTable.section")} selected={section} onChange={(v) => setSection(v.slice(-1))} options={facets.sections.map((b) => ({ value: b, label: b }))} />}
+        <SearchInput label={t("findingsTable.searchRuleControlResourceOr")} className="w-64" value={q} onChange={(e) => setQ(e.target.value)} />
       </FilterBar>
       <div className={open ? "grid gap-2.5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]" : "grid gap-2.5"}>
         <Panel
-          title={tab === "open" ? "Open" : tab === "suppressed" ? "Decided" : "Fixed"}
-          description="Controls that fail, most severe first"
+          title={tab === "open" ? t("findingsTable.open") : tab === "suppressed" ? t("findingsTable.decided") : t("findingsTable.fixed")}
+          description={t("findingsTable.controlsThatFailMostSevere")}
           flush
           footer={
             more ? (
               <Button size="sm" onClick={loadMore}>
-                Load more
+                {t("findingsTable.loadMore")}
               </Button>
             ) : undefined
           }
         >
           <DataTable
-            label="Findings"
+            label={t("findingsTable.findings")}
             columns={columns}
             rows={rows ?? []}
             loading={!rows}
@@ -325,13 +321,13 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
             minWidth={900}
             pageSize={50}
             empty={
-              <EmptyState title={tab === "open" ? "No open findings" : tab === "suppressed" ? "Nothing triaged" : "Nothing fixed yet"}>
+              <EmptyState title={tab === "open" ? t("findingsTable.noOpenFindings") : tab === "suppressed" ? t("findingsTable.nothingTriaged") : t("findingsTable.nothingFixedYet")}>
                 {tab === "open" && summary && !Object.values(summary.open).some(Boolean) ? (
                   <>
-                    Send a report to see findings. See <a href="/setup">Setup</a>.
+                    {t("findingsTable.sendAReportToSee")}{" "}<a href="/setup">{t("findingsTable.setup")}</a>.
                   </>
                 ) : (
-                  "Nothing matches these filters."
+                  t("findingsTable.nothingMatchesTheseFilters")
                 )}
               </EmptyState>
             }
@@ -356,36 +352,38 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
 
 /** Servers in the install's hosts file Posture has no posture scan for, and the file's own problems (ADR 0052). */
 function HostsCoverageNote({ file }: { file?: HostsCoverage | null }) {
+  const t = useT();
   if (!file) return null;
   if (file.error) {
     return (
-      <Callout tone="danger" title="The hosts file is not applied">
-        {file.error} Its last good version is used until it is fixed ({file.path}).
-      </Callout>
+      <Callout tone="danger" title={t("hostsCoverageNote.theHostsFileIsNot")}>
+        {t("hostsCoverageNote.itsLastGoodVersionIs", { error: file.error, path: file.path })}</Callout>
     );
   }
   if (!file.missing.length) return null;
   return (
-    <Callout tone="warning" title={`${file.missing.length} ${file.missing.length === 1 ? "server" : "servers"} in the hosts file ${file.missing.length === 1 ? "has" : "have"} no posture scan`}>
+    <Callout tone="warning" title={t("hostsCoverageNote.inTheHostsFileNo", { length: file.missing.length, value: file.missing.length === 1 ? "server" : "servers", value2: file.missing.length === 1 ? "has" : "have" })}>
       {file.missing.map((h) => h.name).join(", ")}. Send a host benchmark for each, named as the server or its address.
     </Callout>
   );
 }
 
 function FindingsPage({ call, summary, reload }: { call: Call; summary?: Summary; reload: () => void }) {
+  const ago = useAgo();
+  const t = useT();
   const s = summary;
   return (
     <>
-      <PageHeader title="Findings" description={s ? `${plural(s.targets, "target")} · last report ${ago(s.lastScanAt)}` : undefined} />
+      <PageHeader title={t("findingsPage.findings")} description={s ? t("findingsPage.lastReport", { plural: t("plurals.target", { count: s.targets }), ago: ago(s.lastScanAt) }) : undefined} />
       <HostsCoverageNote file={s?.hostsFile} />
       {s && (
         <KpiGrid minWidth={150}>
-          <KpiCard label="Average score" value={s.averageScore === null ? "–" : `${s.averageScore}%`} tone={s.averageScore === null ? "info" : s.averageScore >= 90 ? "success" : s.averageScore >= 70 ? "warning" : "danger"} />
-          <KpiCard label="Critical" value={s.open.critical} footer={<SeverityBadge severity="critical" />} />
-          <KpiCard label="High" value={s.open.high} footer={<SeverityBadge severity="high" />} />
-          <KpiCard label="Medium" value={s.open.medium} footer={<SeverityBadge severity="medium" />} />
-          <KpiCard label="Low" value={s.open.low} footer={<SeverityBadge severity="low" />} />
-          <KpiCard label="Failed checks, 7 days" value={s.failingChecks} tone={s.failingChecks ? "warning" : "success"} />
+          <KpiCard label={t("findingsPage.averageScore")} value={s.averageScore === null ? "–" : `${s.averageScore}%`} tone={s.averageScore === null ? "info" : s.averageScore >= 90 ? "success" : s.averageScore >= 70 ? "warning" : "danger"} />
+          <KpiCard label={t("findingsPage.critical")} value={s.open.critical} footer={<SeverityBadge severity="critical" />} />
+          <KpiCard label={t("findingsPage.high")} value={s.open.high} footer={<SeverityBadge severity="high" />} />
+          <KpiCard label={t("findingsPage.medium")} value={s.open.medium} footer={<SeverityBadge severity="medium" />} />
+          <KpiCard label={t("findingsPage.low")} value={s.open.low} footer={<SeverityBadge severity="low" />} />
+          <KpiCard label={t("findingsPage.failedChecks7Days")} value={s.failingChecks} tone={s.failingChecks ? "warning" : "success"} />
         </KpiGrid>
       )}
       <FindingsTable call={call} summary={s} reload={reload} />
@@ -394,19 +392,22 @@ function FindingsPage({ call, summary, reload }: { call: Call; summary?: Summary
 }
 
 function CheckStatus({ passed }: { passed: boolean }) {
-  return passed ? <StatusBadge tone="success">Passed</StatusBadge> : <StatusBadge tone="danger">Failed</StatusBadge>;
+  const t = useT();
+  return passed ? <StatusBadge tone="success">{t("checkStatus.passed")}</StatusBadge> : <StatusBadge tone="danger">{t("checkStatus.failed")}</StatusBadge>;
 }
 
-const KIND_LABEL: Record<Kind, string> = { cloud: "Cloud account", kubernetes: "Kubernetes cluster", host: "Hosts" };
+const KIND_LABEL = (t: T): Record<Kind, string> => ({ cloud: t("kindLabel.cloudAccount"), kubernetes: t("kindLabel.kubernetesCluster"), host: "Hosts" });
 
 function ScoreBadge({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-xs text-fg-muted">No score</span>;
+  const t = useT();
+  if (score === null) return <span className="text-xs text-fg-muted">{t("scoreBadge.noScore")}</span>;
   return <StatusBadge tone={score >= 90 ? "success" : score >= 70 ? "warning" : "danger"}>{score}%</StatusBadge>;
 }
 
 /** The score of each report as a line, drawn here because it is one polyline and no axis the product needs. */
 function Trend({ points }: { points: History["points"] }) {
-  if (points.length < 2) return <p className="m-0 text-sm text-fg-muted">The trend appears with the second report that has a check count.</p>;
+  const t = useT();
+  if (points.length < 2) return <p className="m-0 text-sm text-fg-muted">{t("trend.theTrendAppearsWithThe")}</p>;
   const w = 600;
   const h = 120;
   const x = (i: number) => (i / (points.length - 1)) * (w - 20) + 10;
@@ -415,24 +416,24 @@ function Trend({ points }: { points: History["points"] }) {
   const last = points[points.length - 1]!;
   return (
     <figure className="m-0">
-      <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Score from ${first.score}% to ${last.score}% over ${points.length} reports`} className="h-32 w-full text-accent">
+      <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={t("trend.scoreFromToOverReports", { score: first.score, score2: last.score, length: points.length })} className="h-32 w-full text-accent">
         <line x1="10" x2={w - 10} y1={y(100)} y2={y(100)} stroke="currentColor" strokeOpacity="0.15" />
         <line x1="10" x2={w - 10} y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity="0.15" />
         <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points.map((p, i) => `${x(i)},${y(p.score)}`).join(" ")} />
         {points.map((p, i) => (
           <circle key={`${p.at}-${i}`} cx={x(i)} cy={y(p.score)} r="3" fill="currentColor">
-            <title>{`${p.score}% on ${new Date(p.at).toLocaleDateString()} (${p.engine}, ${p.passed} of ${p.total} passed)`}</title>
+            <title>{t("trend.onOfPassed", { score: p.score, value: new Date(p.at).toLocaleDateString(), engine: p.engine, passed: p.passed, total: p.total })}</title>
           </circle>
         ))}
       </svg>
       <figcaption className="text-xs text-fg-muted">
-        {first.score}% on {new Date(first.at).toLocaleDateString()} to {last.score}% on {new Date(last.at).toLocaleDateString()}
-      </figcaption>
+        {t("trend.onToOn", { score: first.score, value: new Date(first.at).toLocaleDateString(), score2: last.score, value2: new Date(last.at).toLocaleDateString() })}</figcaption>
     </figure>
   );
 }
 
 function TargetsPage({ call, reload }: { call: Call; reload: () => void }) {
+  const msg = useT();
   const { can } = useAuth();
   const [rows, setRows] = useState<Target[]>();
   const [adding, setAdding] = useState(false);
@@ -459,7 +460,7 @@ function TargetsPage({ call, reload }: { call: Call; reload: () => void }) {
   const columns: Column<Target>[] = [
     {
       id: "name",
-      header: "Target",
+      header: msg("targetsPage.target"),
       width: "22%",
       sortValue: (t) => t.name,
       cell: (t) => (
@@ -468,62 +469,64 @@ function TargetsPage({ call, reload }: { call: Call; reload: () => void }) {
         </a>
       ),
     },
-    { id: "kind", header: "Kind", cell: (t) => <span className="text-xs">{KIND_LABEL[t.kind]}</span> },
-    { id: "benchmark", header: "Benchmark", cell: (t) => <span className="text-xs">{t.benchmark ?? "–"}</span> },
-    { id: "score", header: "Score", sortValue: (t) => t.score ?? -1, cell: (t) => <ScoreBadge score={t.score} /> },
-    { id: "open", header: "Failing", cell: (t) => <SevCounts counts={t.open} /> },
-    { id: "check", header: "Check", cell: (t) => (t.lastScan ? <CheckStatus passed={t.lastScan.passed} /> : "–") },
+    { id: "kind", header: msg("targetsPage.kind"), cell: (t) => <span className="text-xs">{KIND_LABEL(msg)[t.kind]}</span> },
+    { id: "benchmark", header: msg("targetsPage.benchmark"), cell: (t) => <span className="text-xs">{t.benchmark ?? "–"}</span> },
+    { id: "score", header: msg("targetsPage.score"), sortValue: (t) => t.score ?? -1, cell: (t) => <ScoreBadge score={t.score} /> },
+    { id: "open", header: msg("targetsPage.failing"), cell: (t) => <SevCounts counts={t.open} /> },
+    { id: "check", header: msg("targetsPage.check"), cell: (t) => (t.lastScan ? <CheckStatus passed={t.lastScan.passed} /> : "–") },
   ];
   return (
     <>
       <PageHeader
-        title="Targets"
-        description="A cloud account, a Kubernetes cluster or a group of hosts whose configuration is judged against a benchmark."
+        title={msg("targetsPage.targets")}
+        description={msg("targetsPage.aCloudAccountAKubernetes")}
         actions={
           can("admin") && (
             <Button variant="primary" icon={<Plus />} onClick={() => setAdding(true)}>
-              Add target
+              {msg("targetsPage.addTarget")}
             </Button>
           )
         }
       />
       <Panel flush>
         <DataTable
-          label="Targets"
+          label={msg("targetsPage.targets")}
           columns={columns}
           rows={rows ?? []}
           loading={!rows}
           getRowId={(t) => t.id}
           minWidth={820}
-          empty={<EmptyState title="No targets yet">{can("admin") ? "Add the cluster, account or hosts you check." : "An admin adds what is checked."}</EmptyState>}
+          empty={<EmptyState title={msg("targetsPage.noTargetsYet")}>{can("admin") ? msg("targetsPage.addTheClusterAccountOr") : msg("targetsPage.anAdminAddsWhatIs")}</EmptyState>}
         />
       </Panel>
       <Dialog
         open={adding}
         onOpenChange={(open) => !open && close()}
-        title="Add a target"
-        description="Reports are sent for it by name."
+        title={msg("targetsPage.addATarget")}
+        description={msg("targetsPage.reportsAreSentForIt")}
         onSubmit={add}
         footer={
           <>
             <Button type="button" onClick={close}>
-              Cancel
+              {msg("targetsPage.cancel")}
             </Button>
             <Button type="submit" variant="primary" disabled={!name.trim()}>
-              Add target
+              {msg("targetsPage.addTarget")}
             </Button>
           </>
         }
       >
-        <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} hint="Letters, digits, . _ and -. CI sends reports by this name." error={error} />
-        <SelectField label="Kind" value={kind} onChange={(e) => setKind(e.target.value as Kind)} options={(Object.keys(KIND_LABEL) as Kind[]).map((k) => ({ value: k, label: KIND_LABEL[k] }))} />
-        <TextField label="Benchmark" value={benchmark} onChange={(e) => setBenchmark(e.target.value)} hint="Optional, such as CIS Kubernetes 1.9." />
+        <TextField label={msg("targetsPage.name")} value={name} onChange={(e) => setName(e.target.value)} hint={msg("targetsPage.lettersDigitsAndCiSends")} error={error} />
+        <SelectField label={msg("targetsPage.kind")} value={kind} onChange={(e) => setKind(e.target.value as Kind)} options={(Object.keys(KIND_LABEL(msg)) as Kind[]).map((k) => ({ value: k, label: KIND_LABEL(msg)[k] }))} />
+        <TextField label={msg("targetsPage.benchmark")} value={benchmark} onChange={(e) => setBenchmark(e.target.value)} hint={msg("targetsPage.optionalSuchAsCisKubernetes")} />
       </Dialog>
     </>
   );
 }
 
 function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () => void }) {
+  const ago = useAgo();
+  const msg = useT();
   const { can } = useAuth();
   const [target, setTarget] = useState<Target | null>();
   const [scans, setScans] = useState<Scan[]>();
@@ -561,56 +564,56 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
 
   if (target === null)
     return (
-      <EmptyState title="Target not found">
-        It may have been deleted. <a href="/targets">Back to targets</a>.
+      <EmptyState title={msg("targetPage.targetNotFound")}>
+        {msg("targetPage.itMayHaveBeenDeleted")}{" "}<a href="/targets">{msg("targetPage.backToTargets")}</a>.
       </EmptyState>
     );
 
   const columns: Column<Scan>[] = [
-    { id: "when", header: "Report", sortValue: (s) => s.createdAt, cell: (s) => <span className="text-xs whitespace-nowrap">{ago(s.createdAt)}</span> },
-    { id: "engine", header: "Engine", cell: (s) => <Badge>{s.engine}</Badge> },
-    { id: "score", header: "Score", cell: (s) => <ScoreBadge score={s.score} /> },
-    { id: "total", header: "Failing", align: "right", cell: (s) => s.total },
-    { id: "new", header: "New", align: "right", cell: (s) => s.new },
-    { id: "fixed", header: "Fixed", align: "right", cell: (s) => s.resolved },
-    { id: "check", header: "Check", cell: (s) => <CheckStatus passed={s.passed} /> },
+    { id: "when", header: msg("targetPage.report"), sortValue: (s) => s.createdAt, cell: (s) => <span className="text-xs whitespace-nowrap">{ago(s.createdAt)}</span> },
+    { id: "engine", header: msg("targetPage.engine"), cell: (s) => <Badge>{s.engine}</Badge> },
+    { id: "score", header: msg("targetPage.score"), cell: (s) => <ScoreBadge score={s.score} /> },
+    { id: "total", header: msg("targetPage.failing"), align: "right", cell: (s) => s.total },
+    { id: "new", header: msg("targetPage.new"), align: "right", cell: (s) => s.new },
+    { id: "fixed", header: msg("targetPage.fixed"), align: "right", cell: (s) => s.resolved },
+    { id: "check", header: msg("targetPage.check"), cell: (s) => <CheckStatus passed={s.passed} /> },
   ];
   return (
     <>
       <PageHeader
-        title={target?.name ?? "Target"}
-        description={target ? `${KIND_LABEL[target.kind]}${target.benchmark ? ` · ${target.benchmark}` : ""} · ${plural(Object.values(target.open).reduce((a, b) => a + b, 0), "failing control")}` : undefined}
+        title={target?.name ?? msg("targetPage.target")}
+        description={target ? `${KIND_LABEL(msg)[target.kind]}${target.benchmark ? ` · ${target.benchmark}` : ""} · ${msg("plurals.failingControl", { count: Object.values(target.open).reduce((a, b) => a + b, 0) })}` : undefined}
         actions={target && <ScoreBadge score={target.score} />}
       />
-      <Panel title="Score over time" description="The share of checks that passed in each report that gave a count.">
+      <Panel title={msg("targetPage.scoreOverTime")} description={msg("targetPage.theShareOfChecksThat")}>
         {history ? <Trend points={history.points} /> : <p className="m-0 text-sm text-fg-muted">Loading…</p>}
       </Panel>
       {can("admin") && target && (
-        <Panel title="Policy" description="What a check treats as a failure. Only failed controls an engine did not report before, and nobody has decided about, can fail it.">
+        <Panel title={msg("targetPage.policy")} description={msg("targetPage.whatACheckTreatsAs")}>
           <div className="grid gap-2 sm:grid-cols-2">
-            <SelectField label="Fail the check for" value={failOn} onChange={(e) => setFailOn(e.target.value as FailOn)} options={FAIL_ON} />
-            <TextField label="Benchmark" value={benchmark} onChange={(e) => setBenchmark(e.target.value)} hint="A label, such as CIS Kubernetes 1.9." error={error} />
+            <SelectField label={msg("targetPage.failTheCheckFor")} value={failOn} onChange={(e) => setFailOn(e.target.value as FailOn)} options={FAIL_ON(msg)} />
+            <TextField label={msg("targetPage.benchmark")} value={benchmark} onChange={(e) => setBenchmark(e.target.value)} hint={msg("targetPage.aLabelSuchAsCis")} error={error} />
           </div>
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => void save()} disabled={failOn === target.failOn && benchmark.trim() === (target.benchmark ?? "")}>
-              Save policy
+              {msg("targetPage.savePolicy")}
             </Button>
             <Button icon={<Trash2 />} onClick={() => setRemoving(true)}>
-              Delete target
+              {msg("targetPage.deleteTarget")}
             </Button>
           </div>
           <Dialog
             open={removing}
             onOpenChange={setRemoving}
-            title={`Delete ${target.name}?`}
-            description="Its reports, findings and decisions are deleted. A later report needs the target added again."
+            title={msg("targetPage.delete", { name: target.name })}
+            description={msg("targetPage.itsReportsFindingsAndDecisions")}
             footer={
               <>
                 <Button type="button" onClick={() => setRemoving(false)}>
-                  Cancel
+                  {msg("targetPage.cancel")}
                 </Button>
                 <Button type="button" variant="primary" onClick={() => void remove()}>
-                  Delete
+                  {msg("targetPage.delete2")}
                 </Button>
               </>
             }
@@ -620,8 +623,8 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
         </Panel>
       )}
       <FindingsTable call={call} targetId={id} summary={target ?? undefined} reload={() => (load(), reload())} />
-      <Panel title="Reports" flush>
-        <DataTable label="Reports" columns={columns} rows={scans ?? []} loading={!scans} getRowId={(s) => s.id} minWidth={720} empty={<EmptyState title="No reports">Nothing has been sent for this target.</EmptyState>} />
+      <Panel title={msg("targetPage.reports")} flush>
+        <DataTable label={msg("targetPage.reports")} columns={columns} rows={scans ?? []} loading={!scans} getRowId={(s) => s.id} minWidth={720} empty={<EmptyState title={msg("targetPage.noReports")}>{msg("targetPage.nothingHasBeenSentFor")}</EmptyState>} />
       </Panel>
     </>
   );
@@ -630,24 +633,25 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
 // ---------------------------------------------------------------- Setup
 
 function SetupPage() {
+  const t = useT();
   const origin = window.location.origin;
   return (
     <>
-      <PageHeader title="Setup" description="Run Trivy, kubescape, checkov or Prowler against what you check, and send the report here. The answer says whether the check passes." />
-      <Panel title="Send a report" description="Add the target first. Use POSTURE_INGEST_TOKEN, set where posture runs, or an API token with the editor role from API tokens.">
+      <PageHeader title={t("setupPage.setup")} description={t("setupPage.runTrivyKubescapeCheckovOr")} />
+      <Panel title={t("setupPage.sendAReport")} description={t("setupPage.addTheTargetFirstUse")}>
         <Code>{`trivy config --format sarif -o results.sarif .
 curl -sf -X POST -H "Authorization: Bearer $POSTURE_INGEST_TOKEN" -H 'content-type: application/json' \\
   --data-binary @results.sarif \\
   "${origin}/api/v1/scans?target=prod-cluster" > scan.json
 jq -e '.passed' scan.json   # fail the pipeline`}</Code>
       </Panel>
-      <Panel title="How a report is compared" description="Each engine's reports replace its own earlier ones. A control that stops failing is fixed; one that fails for the first time is new.">
+      <Panel title={t("setupPage.howAReportIsCompared")} description={t("setupPage.eachEngineSReportsReplace")}>
         <ul className="posture-list flex flex-col gap-1 text-sm text-fg-muted">
-          <li>The first report of an engine for a target adopts what is there and never fails a check.</li>
-          <li>A failed control is found again by rule and resource.</li>
-          <li>The score is the share of checks that passed: from the report's own summary (run property summary with passed, failed and total), or from its results of kind pass.</li>
-          <li>Benchmark, control and section are kept when the report has them (properties benchmark, control, section), so findings can be filtered by them.</li>
-          <li>A compensating control, a false positive or an accepted risk stays with the finding, with a reason.</li>
+          <li>{t("setupPage.theFirstReportOfAn")}</li>
+          <li>{t("setupPage.aFailedControlIsFound")}</li>
+          <li>{t("setupPage.theScoreIsTheShare")}</li>
+          <li>{t("setupPage.benchmarkControlAndSectionAre")}</li>
+          <li>{t("setupPage.aCompensatingControlAFalse")}</li>
         </ul>
       </Panel>
     </>
@@ -656,9 +660,10 @@ jq -e '.passed' scan.json   # fail the pipeline`}</Code>
 
 /** The first screen, until the first target exists. The summary is polled, so it gives way by itself. */
 function WelcomePage() {
+  const t = useT();
   return (
     <>
-      <PageHeader title="Get started" description="Add what you check, and send a report." actions={<StatusBadge tone="info">Waiting for the first target</StatusBadge>} />
+      <PageHeader title={t("welcomePage.getStarted")} description={t("welcomePage.addWhatYouCheckAnd")} actions={<StatusBadge tone="info">{t("welcomePage.waitingForTheFirstTarget")}</StatusBadge>} />
       <SetupPage />
     </>
   );
@@ -668,8 +673,9 @@ function WelcomePage() {
 
 /** Account, Members, Sign-in and API tokens: the screens come from @openasy/auth. */
 function SettingsPage({ page }: { page: "account" | "members" | "signin" | "tokens" }) {
+  const t = useT();
   const { signOut, can } = useAuth();
-  if (page !== "account" && !can("admin")) return <EmptyState title="Admins only">Ask an admin of this posture for access.</EmptyState>;
+  if (page !== "account" && !can("admin")) return <EmptyState title={t("settingsPage.adminsOnly")}>{t("settingsPage.askAnAdminOfThis")}</EmptyState>;
   const titles = {
     account: ["Account", "Your profile, password, two-step verification and where you are signed in."],
     members: ["Members", "Who can sign in to this posture, and with which role. Viewers see everything; editors also decide about findings; admins also add, change and delete targets, and manage members and tokens."],
@@ -684,7 +690,7 @@ function SettingsPage({ page }: { page: "account" | "members" | "signin" | "toke
         actions={
           page === "account" && (
             <Button icon={<LogOut />} onClick={() => void signOut()}>
-              Sign out
+              {t("settingsPage.signOut")}
             </Button>
           )
         }
@@ -695,6 +701,7 @@ function SettingsPage({ page }: { page: "account" | "members" | "signin" | "toke
 }
 
 function Product() {
+  const msg = useT();
   const [theme, setTheme] = useThemePreference();
   const { me, can } = useAuth();
   const route = parseRoute(usePath());
@@ -718,19 +725,19 @@ function Product() {
   }, [reload]);
 
   const nav = [
-    { id: "findings", label: "Findings", icon: Bug },
-    { id: "targets", label: "Targets", icon: Crosshair, count: summary?.targets },
+    { id: "findings", label: msg("product.findings"), icon: Bug },
+    { id: "targets", label: msg("product.targets"), icon: Crosshair, count: summary?.targets },
   ];
   const footerNav = [
-    { id: "setup", label: "Setup", icon: Settings2 },
+    { id: "setup", label: msg("product.setup"), icon: Settings2 },
     ...(can("admin")
       ? [
-          { id: "members", label: "Members", icon: Users },
-          { id: "signin", label: "Sign-in", icon: LogIn },
-          { id: "tokens", label: "API tokens", icon: KeyRound },
+          { id: "members", label: msg("product.members"), icon: Users },
+          { id: "signin", label: msg("product.signIn"), icon: LogIn },
+          { id: "tokens", label: msg("product.apiTokens"), icon: KeyRound },
         ]
       : []),
-    { id: "account", label: "Account", icon: UserRound },
+    { id: "account", label: msg("product.account"), icon: UserRound },
   ];
   const active = route.page === "target" ? "targets" : route.page;
   const roleName = me.user.role.charAt(0).toUpperCase() + me.user.role.slice(1);
