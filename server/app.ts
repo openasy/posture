@@ -38,7 +38,13 @@ export interface AppOptions {
 
 function metricsText(posture: Posture, version: string) {
   const s = posture.summary();
-  return renderMetrics(version, { targets: s.targets, findings: posture.severityTotals(), suppressed: posture.suppressedCount(), failingChecks: s.failingChecks, scores: posture.scores() });
+  return renderMetrics(version, {
+    targets: s.targets,
+    findings: posture.severityTotals(),
+    suppressed: posture.suppressedCount(),
+    failingChecks: s.failingChecks,
+    scores: posture.scores(),
+  });
 }
 
 /** Serves only /metrics, for a port that is not exposed with the rest (POSTURE_METRICS_PORT). */
@@ -75,7 +81,8 @@ function send(res: ServerResponse, status: number, body: string | Buffer, type =
   res.end(body);
 }
 
-const json = (res: ServerResponse, status: number, data: unknown, headers?: Record<string, string>) => send(res, status, JSON.stringify(data), "application/json", headers);
+const json = (res: ServerResponse, status: number, data: unknown, headers?: Record<string, string>) =>
+  send(res, status, JSON.stringify(data), "application/json", headers);
 
 const TITLES: Record<ProblemCode, string> = {
   "invalid-token": "Invalid token",
@@ -129,7 +136,8 @@ async function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
 
 async function readJson(req: IncomingMessage, limit = 64 * 1024): Promise<Record<string, unknown>> {
   const raw = await readBody(req, limit).catch((err: unknown) => {
-    if (err instanceof PostureError && err.code === "payload-too-large") throw new PostureError(400, "invalid-json", `The body must be JSON, at most ${Math.round(limit / 1024)} KiB.`);
+    if (err instanceof PostureError && err.code === "payload-too-large")
+      throw new PostureError(400, "invalid-json", `The body must be JSON, at most ${Math.round(limit / 1024)} KiB.`);
     throw err;
   });
   try {
@@ -169,18 +177,41 @@ interface Route {
 
 function findingFilter(url: URL, targetId?: string): FindingFilter {
   const status = url.searchParams.get("status") ?? "open";
-  if (status !== "open" && status !== "suppressed" && status !== "resolved") throw new PostureError(422, "invalid-body", "status must be open, suppressed or resolved.");
+  if (status !== "open" && status !== "suppressed" && status !== "resolved")
+    throw new PostureError(422, "invalid-body", "status must be open, suppressed or resolved.");
   const severity = url.searchParams.get("severity")?.split(",").filter(Boolean) as Severity[] | undefined;
-  if (severity?.some((s) => !SEVERITIES.includes(s))) throw new PostureError(422, "invalid-body", `severity is a comma-separated list of ${SEVERITIES.join(", ")}.`);
+  if (severity?.some((s) => !SEVERITIES.includes(s)))
+    throw new PostureError(422, "invalid-body", `severity is a comma-separated list of ${SEVERITIES.join(", ")}.`);
   const q = url.searchParams.get("q")?.trim();
   if (q && q.length > 128) throw new PostureError(422, "invalid-body", "q must be at most 128 characters.");
   const benchmark = url.searchParams.get("benchmark")?.trim();
   const section = url.searchParams.get("section")?.trim();
-  if ((benchmark && benchmark.length > 128) || (section && section.length > 128)) throw new PostureError(422, "invalid-body", "benchmark and section are at most 128 characters.");
-  return { status: status as Status, severity, q: q || undefined, targetId: targetId ?? url.searchParams.get("target") ?? undefined, benchmark: benchmark || undefined, section: section || undefined };
+  if ((benchmark && benchmark.length > 128) || (section && section.length > 128))
+    throw new PostureError(422, "invalid-body", "benchmark and section are at most 128 characters.");
+  return {
+    status: status as Status,
+    severity,
+    q: q || undefined,
+    targetId: targetId ?? url.searchParams.get("target") ?? undefined,
+    benchmark: benchmark || undefined,
+    section: section || undefined,
+  };
 }
 
-export function createApp({ db, posture, version, auth, adminToken, ingestToken, webDir, docsDir, openapi, serveMetrics = true, products = [], hostsFile }: AppOptions) {
+export function createApp({
+  db,
+  posture,
+  version,
+  auth,
+  adminToken,
+  ingestToken,
+  webDir,
+  docsDir,
+  openapi,
+  serveMetrics = true,
+  products = [],
+  hostsFile,
+}: AppOptions) {
   // The served description includes /api/v1/auth from @openasy/auth, so the API reference documents sign-in too.
   const spec = openapi && JSON.stringify({ ...mergeOpenApi(openapi), info: { ...(openapi.info as object), version } });
   const noContent = (res: ServerResponse) => {
@@ -188,7 +219,8 @@ export function createApp({ db, posture, version, auth, adminToken, ingestToken,
   };
   const cursor = (url: URL) => url.searchParams.get("cursor") ?? undefined;
   const limit = (url: URL) => parseLimit(url.searchParams.get("limit"));
-  const page = <K extends string, T>(key: K, p: { items: T[]; nextCursor?: string }) => ({ [key]: p.items, ...(p.nextCursor && { nextCursor: p.nextCursor }) }) as Record<K, T[]> & { nextCursor?: string };
+  const page = <K extends string, T>(key: K, p: { items: T[]; nextCursor?: string }) =>
+    ({ [key]: p.items, ...(p.nextCursor && { nextCursor: p.nextCursor }) }) as Record<K, T[]> & { nextCursor?: string };
 
   /** The servers in the hosts file this product has nothing for, with where the file stands (ADR 0052). */
   const coverage = () => {
@@ -221,11 +253,26 @@ export function createApp({ db, posture, version, auth, adminToken, ingestToken,
     { method: "PATCH", path: "/api/v1/targets/:id", auth: "admin", handle: async ({ params, body }) => posture.updateTarget(params[0]!, await body()) },
     { method: "DELETE", path: "/api/v1/targets/:id", auth: "admin", handle: ({ res, params }) => (posture.deleteTarget(params[0]!), noContent(res)) },
     { method: "GET", path: "/api/v1/targets/:id/history", auth: "viewer", handle: ({ params }) => posture.history(params[0]!) },
-    { method: "GET", path: "/api/v1/targets/:id/scans", auth: "viewer", handle: ({ url, params }) => page("scans", posture.scans(params[0]!, cursor(url), limit(url))) },
-    { method: "GET", path: "/api/v1/targets/:id/findings", auth: "viewer", handle: ({ url, params }) => page("findings", posture.findings(findingFilter(url, params[0]!), cursor(url), limit(url))) },
+    {
+      method: "GET",
+      path: "/api/v1/targets/:id/scans",
+      auth: "viewer",
+      handle: ({ url, params }) => page("scans", posture.scans(params[0]!, cursor(url), limit(url))),
+    },
+    {
+      method: "GET",
+      path: "/api/v1/targets/:id/findings",
+      auth: "viewer",
+      handle: ({ url, params }) => page("findings", posture.findings(findingFilter(url, params[0]!), cursor(url), limit(url))),
+    },
 
     // Findings of every target.
-    { method: "GET", path: "/api/v1/findings", auth: "viewer", handle: ({ url }) => page("findings", posture.findings(findingFilter(url), cursor(url), limit(url))) },
+    {
+      method: "GET",
+      path: "/api/v1/findings",
+      auth: "viewer",
+      handle: ({ url }) => page("findings", posture.findings(findingFilter(url), cursor(url), limit(url))),
+    },
     { method: "GET", path: "/api/v1/facets", auth: "viewer", handle: () => posture.facets() },
     {
       // A decision stays with the finding across reports (ADR 0045).
@@ -245,8 +292,10 @@ export function createApp({ db, posture, version, auth, adminToken, ingestToken,
     if (tokenMatches(req.headers.authorization, adminToken)) return "admin token";
     if (access === "ingest") {
       // An API token or a session with the editor role can send scans too, for CI set up from Settings.
-      if (!ingestToken && !req.headers.authorization?.startsWith("Bearer oa_")) throw new PostureError(503, "not-configured", "Set POSTURE_INGEST_TOKEN on posture, or send an API token with the editor role.");
-      if (!req.headers.authorization?.startsWith("Bearer oa_")) throw new PostureError(401, "invalid-token", "Send POSTURE_INGEST_TOKEN or an API token as a bearer token.");
+      if (!ingestToken && !req.headers.authorization?.startsWith("Bearer oa_"))
+        throw new PostureError(503, "not-configured", "Set POSTURE_INGEST_TOKEN on posture, or send an API token with the editor role.");
+      if (!req.headers.authorization?.startsWith("Bearer oa_"))
+        throw new PostureError(401, "invalid-token", "Send POSTURE_INGEST_TOKEN or an API token as a bearer token.");
     }
     const p = auth.authorize(req, access === "ingest" ? "editor" : access);
     return p.kind === "session" ? p.user.name : `API token ${p.name}`;

@@ -52,7 +52,8 @@ export interface Parsed {
 
 /** Reads a SARIF 2.1.0 report from Trivy, kubescape, checkov, Prowler or another checker of configuration. */
 export function parseSarif(body: unknown): Parsed {
-  if (!isObj(body) || !Array.isArray(body.runs)) throw new SarifError("Send a SARIF 2.1.0 log: a JSON object with a runs array, for example from `trivy config --format sarif`.");
+  if (!isObj(body) || !Array.isArray(body.runs))
+    throw new SarifError("Send a SARIF 2.1.0 log: a JSON object with a runs array, for example from `trivy config --format sarif`.");
   if (typeof body.version === "string" && !body.version.startsWith("2.1")) throw new SarifError(`SARIF ${body.version} is not supported; send version 2.1.0.`);
   const tools: string[] = [];
   const found: Finding[] = [];
@@ -88,7 +89,10 @@ export function parseSarif(body: unknown): Parsed {
       const location = Array.isArray(result.locations) && isObj(result.locations[0]) ? result.locations[0] : {};
       const physical = isObj(location.physicalLocation) ? location.physicalLocation : {};
       const logical = Array.isArray(location.logicalLocations) && isObj(location.logicalLocations[0]) ? location.logicalLocations[0] : {};
-      const resource = text(props.resource ?? logical.fullyQualifiedName ?? logical.name ?? (isObj(physical.artifactLocation) ? physical.artifactLocation.uri : undefined), 512);
+      const resource = text(
+        props.resource ?? logical.fullyQualifiedName ?? logical.name ?? (isObj(physical.artifactLocation) ? physical.artifactLocation.uri : undefined),
+        512,
+      );
       if (!resource) {
         skipped++;
         continue;
@@ -96,12 +100,19 @@ export function parseSarif(body: unknown): Parsed {
       found.push({
         fingerprint: "",
         ruleId,
-        severity: fromScore(props["security-severity"]) ?? fromScore(ruleProps["security-severity"]) ?? fromLevel(result.level ?? (isObj(rule?.defaultConfiguration) ? rule!.defaultConfiguration.level : undefined)),
+        severity:
+          fromScore(props["security-severity"]) ??
+          fromScore(ruleProps["security-severity"]) ??
+          fromLevel(result.level ?? (isObj(rule?.defaultConfiguration) ? rule!.defaultConfiguration.level : undefined)),
         resource: mask(resource),
         benchmark: text(props.benchmark ?? ruleProps.benchmark, 128),
         control: text(props.control ?? ruleProps.control, 64),
         section: text(props.section ?? ruleProps.section, 128),
-        message: mask(text(isObj(result.message) ? (result.message.text ?? result.message.markdown) : undefined, 500) ?? text(isObj(rule?.shortDescription) ? rule!.shortDescription.text : undefined, 500) ?? ruleId),
+        message: mask(
+          text(isObj(result.message) ? (result.message.text ?? result.message.markdown) : undefined, 500) ??
+            text(isObj(rule?.shortDescription) ? rule!.shortDescription.text : undefined, 500) ??
+            ruleId,
+        ),
       });
     }
   }

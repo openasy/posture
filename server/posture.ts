@@ -3,15 +3,7 @@ import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { parseSarif, SarifError, SEVERITIES, type Finding, type Severity } from "./sarif.ts";
 
 export type ProblemCode =
-  | "invalid-token"
-  | "invalid-json"
-  | "invalid-body"
-  | "invalid-sarif"
-  | "not-found"
-  | "conflict"
-  | "not-configured"
-  | "payload-too-large"
-  | "internal-error";
+  "invalid-token" | "invalid-json" | "invalid-body" | "invalid-sarif" | "not-found" | "conflict" | "not-configured" | "payload-too-large" | "internal-error";
 
 export class PostureError extends Error {
   readonly status: number;
@@ -125,7 +117,9 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
   function openCounts(targetId?: string): Counts {
     const c = zero();
     const rows = db
-      .prepare(`SELECT severity, COUNT(*) AS n FROM findings WHERE resolved_at IS NULL AND NOT ${SUPPRESSED} ${targetId ? "AND target_id = ?" : ""} GROUP BY severity`)
+      .prepare(
+        `SELECT severity, COUNT(*) AS n FROM findings WHERE resolved_at IS NULL AND NOT ${SUPPRESSED} ${targetId ? "AND target_id = ?" : ""} GROUP BY severity`,
+      )
       .all(...([now(), ...(targetId ? [targetId] : [])] as SQLInputValue[])) as Array<{ severity: Severity; n: number }>;
     for (const r of rows) c[r.severity] = r.n;
     return c;
@@ -133,11 +127,18 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
 
   /** The score of the newest report that had one. */
   const latestScore = (targetId: string) =>
-    (db.prepare("SELECT score FROM scans WHERE target_id = ? AND score IS NOT NULL ORDER BY created_at DESC, rowid DESC LIMIT 1").get(targetId) as { score: number } | undefined)?.score ?? null;
+    (
+      db.prepare("SELECT score FROM scans WHERE target_id = ? AND score IS NOT NULL ORDER BY created_at DESC, rowid DESC LIMIT 1").get(targetId) as
+        { score: number } | undefined
+    )?.score ?? null;
 
   function presentTarget(t: Record<string, any>) {
-    const last = db.prepare("SELECT created_at, engine, new_count, blocking FROM scans WHERE target_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1").get(t.id) as Record<string, any> | undefined;
-    const suppressed = (db.prepare(`SELECT COUNT(*) AS n FROM findings WHERE target_id = ? AND resolved_at IS NULL AND ${SUPPRESSED}`).get(t.id, now()) as { n: number }).n;
+    const last = db
+      .prepare("SELECT created_at, engine, new_count, blocking FROM scans WHERE target_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1")
+      .get(t.id) as Record<string, any> | undefined;
+    const suppressed = (
+      db.prepare(`SELECT COUNT(*) AS n FROM findings WHERE target_id = ? AND resolved_at IS NULL AND ${SUPPRESSED}`).get(t.id, now()) as { n: number }
+    ).n;
     return {
       id: t.id as string,
       name: t.name as string,
@@ -168,7 +169,10 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
       firstSeen: f.first_seen,
       lastSeen: f.last_seen,
       resolvedAt: f.resolved_at,
-      triage: f.triage === "open" ? null : { state: f.triage as Exclude<Triage, "open">, reason: f.reason!, by: f.triaged_by, at: f.triaged_at, expiresAt: f.expires_at, active },
+      triage:
+        f.triage === "open"
+          ? null
+          : { state: f.triage as Exclude<Triage, "open">, reason: f.reason!, by: f.triaged_by, at: f.triaged_at, expiresAt: f.expires_at, active },
     };
   }
 
@@ -197,7 +201,10 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
          ORDER BY ${RANK_SQL.replaceAll("severity", "f.severity")} DESC, f.first_seen DESC, f.fingerprint LIMIT ? OFFSET ?`,
       )
       .all(...args, limit + 1, offset) as unknown as FindingRow[];
-    return { items: rows.slice(0, limit).map(presentFinding), ...(rows.length > limit && { nextCursor: encodeCursor(offset + limit) }) } satisfies Page<unknown>;
+    return {
+      items: rows.slice(0, limit).map(presentFinding),
+      ...(rows.length > limit && { nextCursor: encodeCursor(offset + limit) }),
+    } satisfies Page<unknown>;
   }
 
   function presentScan(s: Record<string, any>, targetName: string) {
@@ -233,11 +240,19 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
   return {
     createTarget(body: Record<string, unknown>) {
       const { name, kind, benchmark = null, failOn = "high", ...rest } = body;
-      if (Object.keys(rest).length || typeof name !== "string" || !NAME.test(name)) throw bad("Expected { name, kind, benchmark?, failOn? }; name is up to 64 letters, digits, . _ and -.");
+      if (Object.keys(rest).length || typeof name !== "string" || !NAME.test(name))
+        throw bad("Expected { name, kind, benchmark?, failOn? }; name is up to 64 letters, digits, . _ and -.");
       if (typeof kind !== "string" || !KINDS.includes(kind as Kind)) throw bad(`kind must be one of ${KINDS.join(", ")}.`);
       if (db.prepare("SELECT 1 FROM targets WHERE name = ?").get(name)) throw new PostureError(409, "conflict", "A target with this name exists.");
       const id = randomUUID();
-      db.prepare("INSERT INTO targets (id, name, kind, benchmark, fail_on, created_at) VALUES (?, ?, ?, ?, ?, ?)").run(id, name, kind, benchmarkOf(benchmark), failOnOf(failOn), now());
+      db.prepare("INSERT INTO targets (id, name, kind, benchmark, fail_on, created_at) VALUES (?, ?, ?, ?, ?, ?)").run(
+        id,
+        name,
+        kind,
+        benchmarkOf(benchmark),
+        failOnOf(failOn),
+        now(),
+      );
       return presentTarget(targetRow(id));
     },
 
@@ -266,7 +281,9 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
     history(id: string) {
       targetRow(id);
       const rows = db
-        .prepare("SELECT created_at, engine, score, checks_passed, checks_total FROM scans WHERE target_id = ? AND score IS NOT NULL ORDER BY created_at DESC, rowid DESC LIMIT ?")
+        .prepare(
+          "SELECT created_at, engine, score, checks_passed, checks_total FROM scans WHERE target_id = ? AND score IS NOT NULL ORDER BY created_at DESC, rowid DESC LIMIT ?",
+        )
         .all(id, HISTORY_POINTS) as Array<{ created_at: string; engine: string; score: number; checks_passed: number; checks_total: number }>;
       return { points: rows.reverse().map((r) => ({ at: r.created_at, engine: r.engine, score: r.score, passed: r.checks_passed, total: r.checks_total })) };
     },
@@ -306,7 +323,10 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
       db.exec("BEGIN IMMEDIATE");
       try {
         const known = new Map<string, { resolved_at: string | null; triage: Triage; expires_at: string | null }>();
-        for (const r of db.prepare("SELECT fingerprint, resolved_at, triage, expires_at FROM findings WHERE target_id = ? AND engine = ?").all(target.id, engine) as Array<{ fingerprint: string; resolved_at: string | null; triage: Triage; expires_at: string | null }>) known.set(r.fingerprint, r);
+        for (const r of db
+          .prepare("SELECT fingerprint, resolved_at, triage, expires_at FROM findings WHERE target_id = ? AND engine = ?")
+          .all(target.id, engine) as Array<{ fingerprint: string; resolved_at: string | null; triage: Triage; expires_at: string | null }>)
+          known.set(r.fingerprint, r);
         const first = !db.prepare("SELECT 1 FROM scans WHERE target_id = ? AND engine = ?").get(target.id, engine);
         const decided = (f: Finding) => {
           const k = known.get(f.fingerprint);
@@ -323,13 +343,32 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
              message = excluded.message, last_seen = excluded.last_seen,
              first_seen = CASE WHEN findings.resolved_at IS NULL THEN findings.first_seen ELSE excluded.first_seen END, resolved_at = NULL`,
         );
-        for (const f of kept) upsert.run(target.id, f.fingerprint, engine, f.ruleId, f.severity, f.resource, f.benchmark, f.control, f.section, f.message, at, at);
-        const resolved = db.prepare("UPDATE findings SET resolved_at = ? WHERE target_id = ? AND engine = ? AND resolved_at IS NULL AND last_seen < ?").run(at, target.id, engine, at).changes as number;
+        for (const f of kept)
+          upsert.run(target.id, f.fingerprint, engine, f.ruleId, f.severity, f.resource, f.benchmark, f.control, f.section, f.message, at, at);
+        const resolved = db
+          .prepare("UPDATE findings SET resolved_at = ? WHERE target_id = ? AND engine = ? AND resolved_at IS NULL AND last_seen < ?")
+          .run(at, target.id, engine, at).changes as number;
 
         db.prepare(
           `INSERT INTO scans (id, target_id, engine, tool, total, checks_total, checks_passed, score, new_count, resolved, suppressed, ignored, blocking, fail_on, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        ).run(id, target.id, engine, parsed.tool, kept.length, parsed.checks?.total ?? null, parsed.checks?.passed ?? null, score, added.length, resolved, fresh.length - added.length, parsed.skipped, blocking, failOn, at);
+        ).run(
+          id,
+          target.id,
+          engine,
+          parsed.tool,
+          kept.length,
+          parsed.checks?.total ?? null,
+          parsed.checks?.passed ?? null,
+          score,
+          added.length,
+          resolved,
+          fresh.length - added.length,
+          parsed.skipped,
+          blocking,
+          failOn,
+          at,
+        );
         db.exec("COMMIT");
         return {
           ...presentScan(db.prepare("SELECT * FROM scans WHERE id = ?").get(id) as Record<string, any>, name),
@@ -356,12 +395,23 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
       const failing = (db.prepare("SELECT COUNT(*) AS n FROM scans WHERE blocking > 0 AND created_at > ?").get(week) as { n: number }).n;
       const lastScanAt = (db.prepare("SELECT MAX(created_at) AS t FROM scans").get() as { t: string | null }).t;
       const scores = (db.prepare("SELECT id FROM targets").all() as Array<{ id: string }>).map((t) => latestScore(t.id)).filter((s): s is number => s !== null);
-      return { targets, open: openCounts(), suppressed, failingChecks: failing, lastScanAt, averageScore: scores.length ? round1(scores.reduce((a, b) => a + b, 0) / scores.length) : null };
+      return {
+        targets,
+        open: openCounts(),
+        suppressed,
+        failingChecks: failing,
+        lastScanAt,
+        averageScore: scores.length ? round1(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+      };
     },
 
     severityTotals: () => openCounts(),
     suppressedCount: () => (db.prepare(`SELECT COUNT(*) AS n FROM findings WHERE resolved_at IS NULL AND ${SUPPRESSED}`).get(now()) as { n: number }).n,
-    scores: () => (db.prepare("SELECT id, name FROM targets ORDER BY name").all() as Array<{ id: string; name: string }>).map((t) => ({ target: t.name, score: latestScore(t.id) })),
+    scores: () =>
+      (db.prepare("SELECT id, name FROM targets ORDER BY name").all() as Array<{ id: string; name: string }>).map((t) => ({
+        target: t.name,
+        score: latestScore(t.id),
+      })),
 
     findings(filter: FindingFilter, cursor: string | undefined, limit: number) {
       if (filter.targetId) targetRow(filter.targetId);
@@ -370,19 +420,30 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
 
     /** The benchmarks and sections that findings carry, for the filters. */
     facets() {
-      const rows = db.prepare("SELECT DISTINCT benchmark, section FROM findings WHERE resolved_at IS NULL AND (benchmark IS NOT NULL OR section IS NOT NULL)").all() as Array<{ benchmark: string | null; section: string | null }>;
-      return { benchmarks: [...new Set(rows.map((r) => r.benchmark).filter((b): b is string => !!b))].sort(), sections: [...new Set(rows.map((r) => r.section).filter((b): b is string => !!b))].sort() };
+      const rows = db
+        .prepare("SELECT DISTINCT benchmark, section FROM findings WHERE resolved_at IS NULL AND (benchmark IS NOT NULL OR section IS NOT NULL)")
+        .all() as Array<{ benchmark: string | null; section: string | null }>;
+      return {
+        benchmarks: [...new Set(rows.map((r) => r.benchmark).filter((b): b is string => !!b))].sort(),
+        sections: [...new Set(rows.map((r) => r.section).filter((b): b is string => !!b))].sort(),
+      };
     },
 
     scans(targetId: string, cursor: string | undefined, limit: number) {
       const t = targetRow(targetId);
       const offset = decodeCursor(cursor);
-      const rows = db.prepare("SELECT * FROM scans WHERE target_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?").all(targetId, limit + 1, offset) as Array<Record<string, any>>;
-      return { items: rows.slice(0, limit).map((s) => presentScan(s, t.name)), ...(rows.length > limit && { nextCursor: encodeCursor(offset + limit) }) } satisfies Page<unknown>;
+      const rows = db
+        .prepare("SELECT * FROM scans WHERE target_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?")
+        .all(targetId, limit + 1, offset) as Array<Record<string, any>>;
+      return {
+        items: rows.slice(0, limit).map((s) => presentScan(s, t.name)),
+        ...(rows.length > limit && { nextCursor: encodeCursor(offset + limit) }),
+      } satisfies Page<unknown>;
     },
 
     scan(id: string) {
-      const s = db.prepare("SELECT s.*, t.name AS target_name FROM scans s JOIN targets t ON t.id = s.target_id WHERE s.id = ?").get(id) as Record<string, any> | undefined;
+      const s = db.prepare("SELECT s.*, t.name AS target_name FROM scans s JOIN targets t ON t.id = s.target_id WHERE s.id = ?").get(id) as
+        Record<string, any> | undefined;
       if (!s) throw notFound("The scan");
       return presentScan(s, s.target_name);
     },
@@ -391,10 +452,13 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
     triage(targetId: string, fingerprint: string, body: Record<string, unknown>, by: string) {
       targetRow(targetId);
       const { state, reason, expiresAt, ...rest } = body;
-      if (Object.keys(rest).length || typeof state !== "string" || !TRIAGE.includes(state as Triage)) throw bad(`Expected { state, reason?, expiresAt? }; state is one of ${TRIAGE.join(", ")}.`);
+      if (Object.keys(rest).length || typeof state !== "string" || !TRIAGE.includes(state as Triage))
+        throw bad(`Expected { state, reason?, expiresAt? }; state is one of ${TRIAGE.join(", ")}.`);
       if (!db.prepare("SELECT 1 FROM findings WHERE target_id = ? AND fingerprint = ?").get(targetId, fingerprint)) throw notFound("The finding");
       if (state === "open") {
-        db.prepare("UPDATE findings SET triage = 'open', reason = NULL, triaged_by = NULL, triaged_at = NULL, expires_at = NULL WHERE target_id = ? AND fingerprint = ?").run(targetId, fingerprint);
+        db.prepare(
+          "UPDATE findings SET triage = 'open', reason = NULL, triaged_by = NULL, triaged_at = NULL, expires_at = NULL WHERE target_id = ? AND fingerprint = ?",
+        ).run(targetId, fingerprint);
       } else {
         // A decision without a reason is lost the day its author leaves (ADR 0045).
         if (typeof reason !== "string" || reason.trim().length < 3 || reason.length > 500) throw bad("reason is required: 3 to 500 characters.");
@@ -407,9 +471,19 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
         }
         // Accepted risk always ends; a false positive or a compensating control does not need to.
         if (state === "accepted" && !expires) throw bad("expiresAt is required for accepted risk.");
-        db.prepare("UPDATE findings SET triage = ?, reason = ?, triaged_by = ?, triaged_at = ?, expires_at = ? WHERE target_id = ? AND fingerprint = ?").run(state, reason.trim(), by, now(), expires, targetId, fingerprint);
+        db.prepare("UPDATE findings SET triage = ?, reason = ?, triaged_by = ?, triaged_at = ?, expires_at = ? WHERE target_id = ? AND fingerprint = ?").run(
+          state,
+          reason.trim(),
+          by,
+          now(),
+          expires,
+          targetId,
+          fingerprint,
+        );
       }
-      const row = db.prepare("SELECT f.*, t.name AS target_name FROM findings f JOIN targets t ON t.id = f.target_id WHERE f.target_id = ? AND f.fingerprint = ?").get(targetId, fingerprint) as unknown as FindingRow;
+      const row = db
+        .prepare("SELECT f.*, t.name AS target_name FROM findings f JOIN targets t ON t.id = f.target_id WHERE f.target_id = ? AND f.fingerprint = ?")
+        .get(targetId, fingerprint) as unknown as FindingRow;
       return presentFinding(row);
     },
 

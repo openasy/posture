@@ -31,7 +31,21 @@ import {
 import { AccountSettings, AuthGate, MembersSettings, SignInSettings, TokensSettings, useAuth } from "@openasy/auth/react";
 import { Bug, CircleSlash, Crosshair, KeyRound, LogIn, LogOut, Plus, Settings2, Trash2, UserRound, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { api, MfaSetupRequired, Unauthorized, type FailOn, type Finding, type History, type Kind, type ProductLink, type Scan, type Severity, type HostsCoverage, type Summary, type Target } from "./api.ts";
+import {
+  api,
+  MfaSetupRequired,
+  Unauthorized,
+  type FailOn,
+  type Finding,
+  type History,
+  type Kind,
+  type ProductLink,
+  type Scan,
+  type Severity,
+  type HostsCoverage,
+  type Summary,
+  type Target,
+} from "./api.ts";
 import { useT, type T } from "./i18n.ts";
 
 const PAGES = ["targets", "setup", "account", "members", "signin", "tokens"] as const;
@@ -64,13 +78,13 @@ function useApi() {
 type Call = ReturnType<typeof useApi>;
 
 const SEVERITIES: Severity[] = ["critical", "high", "medium", "low"];
-const FAIL_ON = (t: T): Array<{ value: FailOn; label: string }> => ([
+const FAIL_ON = (t: T): Array<{ value: FailOn; label: string }> => [
   { value: "critical", label: t("failOn.critical") },
   { value: "high", label: t("failOn.highOrWorse") },
   { value: "medium", label: t("failOn.mediumOrWorse") },
   { value: "low", label: t("failOn.anyFinding") },
   { value: "none", label: t("failOn.neverFail") },
-]);
+];
 
 /** Compact severity counts; each badge carries the full name for screen readers. */
 function SevCounts({ counts }: { counts: Record<Severity, number> }) {
@@ -108,7 +122,10 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
   const decide = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await call(url, { method: "PUT", body: JSON.stringify({ state, reason, ...(state === "accepted" && { expiresAt: new Date(Date.now() + Number(days) * 86_400_000).toISOString() }) }) });
+      await call(url, {
+        method: "PUT",
+        body: JSON.stringify({ state, reason, ...(state === "accepted" && { expiresAt: new Date(Date.now() + Number(days) * 86_400_000).toISOString() }) }),
+      });
       close();
       onChanged();
     } catch (err) {
@@ -141,7 +158,15 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
         {t && (
           <div className="flex flex-col gap-1 rounded-md border border-line p-2.5 text-xs">
             <span>
-              <StatusBadge tone={t.active ? "success" : "neutral"}>{t.state === "compensating" ? msg("findingPanel.compensatingControl") : t.state === "false-positive" ? msg("findingPanel.falsePositive") : t.active ? msg("findingPanel.acceptedRisk") : msg("findingPanel.acceptanceExpired")}</StatusBadge>
+              <StatusBadge tone={t.active ? "success" : "neutral"}>
+                {t.state === "compensating"
+                  ? msg("findingPanel.compensatingControl")
+                  : t.state === "false-positive"
+                    ? msg("findingPanel.falsePositive")
+                    : t.active
+                      ? msg("findingPanel.acceptedRisk")
+                      : msg("findingPanel.acceptanceExpired")}
+              </StatusBadge>
             </span>
             <span>{t.reason}</span>
             <span className="text-fg-muted">
@@ -190,7 +215,13 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
               { value: "accepted", label: msg("findingPanel.acceptedRisk") },
             ]}
           />
-          <TextField label={msg("findingPanel.reason")} value={reason} onChange={(e) => setReason(e.target.value)} hint={msg("findingPanel.whyForTheNextReview")} error={error} />
+          <TextField
+            label={msg("findingPanel.reason")}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            hint={msg("findingPanel.whyForTheNextReview")}
+            error={error}
+          />
           {state === "accepted" && (
             <SelectField
               label={msg("findingPanel.for")}
@@ -213,7 +244,17 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
 type Tab = "open" | "suppressed" | "resolved";
 
 /** Findings of every target, or of one when targetId is given. */
-function FindingsTable({ call, targetId, summary, reload }: { call: Call; targetId?: string; summary?: { open: Record<Severity, number> }; reload: () => void }) {
+function FindingsTable({
+  call,
+  targetId,
+  summary,
+  reload,
+}: {
+  call: Call;
+  targetId?: string;
+  summary?: { open: Record<Severity, number> };
+  reload: () => void;
+}) {
   const ago = useAgo();
   const t = useT();
   const [tab, setTab] = useState<Tab>("open");
@@ -240,7 +281,10 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
     [call, base, tab, sev, q, benchmark, section],
   );
   const load = useCallback(() => {
-    query().then((r) => (setRows(r.findings), setMore(r.nextCursor)), () => setRows([]));
+    query().then(
+      (r) => (setRows(r.findings), setMore(r.nextCursor)),
+      () => setRows([]),
+    );
   }, [query]);
   useEffect(load, [load]);
   useEffect(() => void call<{ benchmarks: string[]; sections: string[] }>("/api/v1/facets").then(setFacets, () => {}), [call]);
@@ -275,8 +319,17 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
       ),
     },
     { id: "engine", header: t("findingsTable.engine"), cell: (f) => <Badge>{f.engine}</Badge> },
-    ...(targetId ? [] : [{ id: "target", header: t("findingsTable.target"), cell: (f: Finding) => <span className="text-xs">{f.target.name}</span> } satisfies Column<Finding>]),
-    { id: "seen", header: t("findingsTable.firstSeen"), sortValue: (f) => f.firstSeen, cell: (f) => <span className="text-xs whitespace-nowrap">{ago(f.firstSeen)}</span> },
+    ...(targetId
+      ? []
+      : [
+          { id: "target", header: t("findingsTable.target"), cell: (f: Finding) => <span className="text-xs">{f.target.name}</span> } satisfies Column<Finding>,
+        ]),
+    {
+      id: "seen",
+      header: t("findingsTable.firstSeen"),
+      sortValue: (f) => f.firstSeen,
+      cell: (f) => <span className="text-xs whitespace-nowrap">{ago(f.firstSeen)}</span>,
+    },
   ];
 
   return (
@@ -292,9 +345,28 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
         ]}
       />
       <FilterBar onClear={() => (setSev([]), setQ(""), setBenchmark([]), setSection([]))}>
-        <FacetFilter label={t("findingsTable.severity")} selected={sev} onChange={setSev} options={SEVERITIES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1), count: tab === "open" ? summary?.open[s] : undefined }))} />
-        {facets.benchmarks.length > 0 && <FacetFilter label={t("findingsTable.benchmark")} selected={benchmark} onChange={(v) => setBenchmark(v.slice(-1))} options={facets.benchmarks.map((b) => ({ value: b, label: b }))} />}
-        {facets.sections.length > 0 && <FacetFilter label={t("findingsTable.section")} selected={section} onChange={(v) => setSection(v.slice(-1))} options={facets.sections.map((b) => ({ value: b, label: b }))} />}
+        <FacetFilter
+          label={t("findingsTable.severity")}
+          selected={sev}
+          onChange={setSev}
+          options={SEVERITIES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1), count: tab === "open" ? summary?.open[s] : undefined }))}
+        />
+        {facets.benchmarks.length > 0 && (
+          <FacetFilter
+            label={t("findingsTable.benchmark")}
+            selected={benchmark}
+            onChange={(v) => setBenchmark(v.slice(-1))}
+            options={facets.benchmarks.map((b) => ({ value: b, label: b }))}
+          />
+        )}
+        {facets.sections.length > 0 && (
+          <FacetFilter
+            label={t("findingsTable.section")}
+            selected={section}
+            onChange={(v) => setSection(v.slice(-1))}
+            options={facets.sections.map((b) => ({ value: b, label: b }))}
+          />
+        )}
         <SearchInput label={t("findingsTable.searchRuleControlResourceOr")} className="w-64" value={q} onChange={(e) => setQ(e.target.value)} />
       </FilterBar>
       <div className={open ? "grid gap-2.5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]" : "grid gap-2.5"}>
@@ -321,10 +393,18 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
             minWidth={900}
             pageSize={50}
             empty={
-              <EmptyState title={tab === "open" ? t("findingsTable.noOpenFindings") : tab === "suppressed" ? t("findingsTable.nothingTriaged") : t("findingsTable.nothingFixedYet")}>
+              <EmptyState
+                title={
+                  tab === "open"
+                    ? t("findingsTable.noOpenFindings")
+                    : tab === "suppressed"
+                      ? t("findingsTable.nothingTriaged")
+                      : t("findingsTable.nothingFixedYet")
+                }
+              >
                 {tab === "open" && summary && !Object.values(summary.open).some(Boolean) ? (
                   <>
-                    {t("findingsTable.sendAReportToSee")}{" "}<a href="/setup">{t("findingsTable.setup")}</a>.
+                    {t("findingsTable.sendAReportToSee")} <a href="/setup">{t("findingsTable.setup")}</a>.
                   </>
                 ) : (
                   t("findingsTable.nothingMatchesTheseFilters")
@@ -357,12 +437,20 @@ function HostsCoverageNote({ file }: { file?: HostsCoverage | null }) {
   if (file.error) {
     return (
       <Callout tone="danger" title={t("hostsCoverageNote.theHostsFileIsNot")}>
-        {t("hostsCoverageNote.itsLastGoodVersionIs", { error: file.error, path: file.path })}</Callout>
+        {t("hostsCoverageNote.itsLastGoodVersionIs", { error: file.error, path: file.path })}
+      </Callout>
     );
   }
   if (!file.missing.length) return null;
   return (
-    <Callout tone="warning" title={t("hostsCoverageNote.inTheHostsFileNo", { length: file.missing.length, value: file.missing.length === 1 ? "server" : "servers", value2: file.missing.length === 1 ? "has" : "have" })}>
+    <Callout
+      tone="warning"
+      title={t("hostsCoverageNote.inTheHostsFileNo", {
+        length: file.missing.length,
+        value: file.missing.length === 1 ? "server" : "servers",
+        value2: file.missing.length === 1 ? "has" : "have",
+      })}
+    >
       {file.missing.map((h) => h.name).join(", ")}. Send a host benchmark for each, named as the server or its address.
     </Callout>
   );
@@ -374,11 +462,18 @@ function FindingsPage({ call, summary, reload }: { call: Call; summary?: Summary
   const s = summary;
   return (
     <>
-      <PageHeader title={t("findingsPage.findings")} description={s ? t("findingsPage.lastReport", { plural: t("plurals.target", { count: s.targets }), ago: ago(s.lastScanAt) }) : undefined} />
+      <PageHeader
+        title={t("findingsPage.findings")}
+        description={s ? t("findingsPage.lastReport", { plural: t("plurals.target", { count: s.targets }), ago: ago(s.lastScanAt) }) : undefined}
+      />
       <HostsCoverageNote file={s?.hostsFile} />
       {s && (
         <KpiGrid minWidth={150}>
-          <KpiCard label={t("findingsPage.averageScore")} value={s.averageScore === null ? "–" : `${s.averageScore}%`} tone={s.averageScore === null ? "info" : s.averageScore >= 90 ? "success" : s.averageScore >= 70 ? "warning" : "danger"} />
+          <KpiCard
+            label={t("findingsPage.averageScore")}
+            value={s.averageScore === null ? "–" : `${s.averageScore}%`}
+            tone={s.averageScore === null ? "info" : s.averageScore >= 90 ? "success" : s.averageScore >= 70 ? "warning" : "danger"}
+          />
           <KpiCard label={t("findingsPage.critical")} value={s.open.critical} footer={<SeverityBadge severity="critical" />} />
           <KpiCard label={t("findingsPage.high")} value={s.open.high} footer={<SeverityBadge severity="high" />} />
           <KpiCard label={t("findingsPage.medium")} value={s.open.medium} footer={<SeverityBadge severity="medium" />} />
@@ -416,18 +511,31 @@ function Trend({ points }: { points: History["points"] }) {
   const last = points[points.length - 1]!;
   return (
     <figure className="m-0">
-      <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={t("trend.scoreFromToOverReports", { score: first.score, score2: last.score, length: points.length })} className="h-32 w-full text-accent">
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        role="img"
+        aria-label={t("trend.scoreFromToOverReports", { score: first.score, score2: last.score, length: points.length })}
+        className="h-32 w-full text-accent"
+      >
         <line x1="10" x2={w - 10} y1={y(100)} y2={y(100)} stroke="currentColor" strokeOpacity="0.15" />
         <line x1="10" x2={w - 10} y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity="0.15" />
         <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points.map((p, i) => `${x(i)},${y(p.score)}`).join(" ")} />
         {points.map((p, i) => (
           <circle key={`${p.at}-${i}`} cx={x(i)} cy={y(p.score)} r="3" fill="currentColor">
-            <title>{t("trend.onOfPassed", { score: p.score, value: new Date(p.at).toLocaleDateString(), engine: p.engine, passed: p.passed, total: p.total })}</title>
+            <title>
+              {t("trend.onOfPassed", { score: p.score, value: new Date(p.at).toLocaleDateString(), engine: p.engine, passed: p.passed, total: p.total })}
+            </title>
           </circle>
         ))}
       </svg>
       <figcaption className="text-xs text-fg-muted">
-        {t("trend.onToOn", { score: first.score, value: new Date(first.at).toLocaleDateString(), score2: last.score, value2: new Date(last.at).toLocaleDateString() })}</figcaption>
+        {t("trend.onToOn", {
+          score: first.score,
+          value: new Date(first.at).toLocaleDateString(),
+          score2: last.score,
+          value2: new Date(last.at).toLocaleDateString(),
+        })}
+      </figcaption>
     </figure>
   );
 }
@@ -441,14 +549,24 @@ function TargetsPage({ call, reload }: { call: Call; reload: () => void }) {
   const [kind, setKind] = useState<Kind>("kubernetes");
   const [benchmark, setBenchmark] = useState("");
   const [error, setError] = useState<string>();
-  const load = useCallback(() => void call<{ targets: Target[] }>("/api/v1/targets?limit=500").then((r) => setRows(r.targets), () => setRows([])), [call]);
+  const load = useCallback(
+    () =>
+      void call<{ targets: Target[] }>("/api/v1/targets?limit=500").then(
+        (r) => setRows(r.targets),
+        () => setRows([]),
+      ),
+    [call],
+  );
   useEffect(load, [load]);
   const close = () => (setAdding(false), setName(""), setBenchmark(""), setError(undefined));
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      const t = await call<Target>("/api/v1/targets", { method: "POST", body: JSON.stringify({ name, kind, ...(benchmark.trim() && { benchmark: benchmark.trim() }) }) });
+      const t = await call<Target>("/api/v1/targets", {
+        method: "POST",
+        body: JSON.stringify({ name, kind, ...(benchmark.trim() && { benchmark: benchmark.trim() }) }),
+      });
       close();
       reload();
       navigate(`/targets/${t.id}`);
@@ -496,7 +614,11 @@ function TargetsPage({ call, reload }: { call: Call; reload: () => void }) {
           loading={!rows}
           getRowId={(t) => t.id}
           minWidth={820}
-          empty={<EmptyState title={msg("targetsPage.noTargetsYet")}>{can("admin") ? msg("targetsPage.addTheClusterAccountOr") : msg("targetsPage.anAdminAddsWhatIs")}</EmptyState>}
+          empty={
+            <EmptyState title={msg("targetsPage.noTargetsYet")}>
+              {can("admin") ? msg("targetsPage.addTheClusterAccountOr") : msg("targetsPage.anAdminAddsWhatIs")}
+            </EmptyState>
+          }
         />
       </Panel>
       <Dialog
@@ -516,9 +638,25 @@ function TargetsPage({ call, reload }: { call: Call; reload: () => void }) {
           </>
         }
       >
-        <TextField label={msg("targetsPage.name")} value={name} onChange={(e) => setName(e.target.value)} hint={msg("targetsPage.lettersDigitsAndCiSends")} error={error} />
-        <SelectField label={msg("targetsPage.kind")} value={kind} onChange={(e) => setKind(e.target.value as Kind)} options={(Object.keys(KIND_LABEL(msg)) as Kind[]).map((k) => ({ value: k, label: KIND_LABEL(msg)[k] }))} />
-        <TextField label={msg("targetsPage.benchmark")} value={benchmark} onChange={(e) => setBenchmark(e.target.value)} hint={msg("targetsPage.optionalSuchAsCisKubernetes")} />
+        <TextField
+          label={msg("targetsPage.name")}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          hint={msg("targetsPage.lettersDigitsAndCiSends")}
+          error={error}
+        />
+        <SelectField
+          label={msg("targetsPage.kind")}
+          value={kind}
+          onChange={(e) => setKind(e.target.value as Kind)}
+          options={(Object.keys(KIND_LABEL(msg)) as Kind[]).map((k) => ({ value: k, label: KIND_LABEL(msg)[k] }))}
+        />
+        <TextField
+          label={msg("targetsPage.benchmark")}
+          value={benchmark}
+          onChange={(e) => setBenchmark(e.target.value)}
+          hint={msg("targetsPage.optionalSuchAsCisKubernetes")}
+        />
       </Dialog>
     </>
   );
@@ -537,8 +675,14 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
   const [removing, setRemoving] = useState(false);
 
   const load = useCallback(() => {
-    call<Target>(`/api/v1/targets/${id}`).then((t) => (setTarget(t), setFailOn(t.failOn), setBenchmark(t.benchmark ?? "")), () => setTarget(null));
-    call<{ scans: Scan[] }>(`/api/v1/targets/${id}/scans?limit=50`).then((r) => setScans(r.scans), () => setScans([]));
+    call<Target>(`/api/v1/targets/${id}`).then(
+      (t) => (setTarget(t), setFailOn(t.failOn), setBenchmark(t.benchmark ?? "")),
+      () => setTarget(null),
+    );
+    call<{ scans: Scan[] }>(`/api/v1/targets/${id}/scans?limit=50`).then(
+      (r) => setScans(r.scans),
+      () => setScans([]),
+    );
     call<History>(`/api/v1/targets/${id}/history`).then(setHistory, () => {});
   }, [call, id]);
   useEffect(load, [load]);
@@ -565,12 +709,17 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
   if (target === null)
     return (
       <EmptyState title={msg("targetPage.targetNotFound")}>
-        {msg("targetPage.itMayHaveBeenDeleted")}{" "}<a href="/targets">{msg("targetPage.backToTargets")}</a>.
+        {msg("targetPage.itMayHaveBeenDeleted")} <a href="/targets">{msg("targetPage.backToTargets")}</a>.
       </EmptyState>
     );
 
   const columns: Column<Scan>[] = [
-    { id: "when", header: msg("targetPage.report"), sortValue: (s) => s.createdAt, cell: (s) => <span className="text-xs whitespace-nowrap">{ago(s.createdAt)}</span> },
+    {
+      id: "when",
+      header: msg("targetPage.report"),
+      sortValue: (s) => s.createdAt,
+      cell: (s) => <span className="text-xs whitespace-nowrap">{ago(s.createdAt)}</span>,
+    },
     { id: "engine", header: msg("targetPage.engine"), cell: (s) => <Badge>{s.engine}</Badge> },
     { id: "score", header: msg("targetPage.score"), cell: (s) => <ScoreBadge score={s.score} /> },
     { id: "total", header: msg("targetPage.failing"), align: "right", cell: (s) => s.total },
@@ -582,7 +731,11 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
     <>
       <PageHeader
         title={target?.name ?? msg("targetPage.target")}
-        description={target ? `${KIND_LABEL(msg)[target.kind]}${target.benchmark ? ` · ${target.benchmark}` : ""} · ${msg("plurals.failingControl", { count: Object.values(target.open).reduce((a, b) => a + b, 0) })}` : undefined}
+        description={
+          target
+            ? `${KIND_LABEL(msg)[target.kind]}${target.benchmark ? ` · ${target.benchmark}` : ""} · ${msg("plurals.failingControl", { count: Object.values(target.open).reduce((a, b) => a + b, 0) })}`
+            : undefined
+        }
         actions={target && <ScoreBadge score={target.score} />}
       />
       <Panel title={msg("targetPage.scoreOverTime")} description={msg("targetPage.theShareOfChecksThat")}>
@@ -591,8 +744,19 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
       {can("admin") && target && (
         <Panel title={msg("targetPage.policy")} description={msg("targetPage.whatACheckTreatsAs")}>
           <div className="grid gap-2 sm:grid-cols-2">
-            <SelectField label={msg("targetPage.failTheCheckFor")} value={failOn} onChange={(e) => setFailOn(e.target.value as FailOn)} options={FAIL_ON(msg)} />
-            <TextField label={msg("targetPage.benchmark")} value={benchmark} onChange={(e) => setBenchmark(e.target.value)} hint={msg("targetPage.aLabelSuchAsCis")} error={error} />
+            <SelectField
+              label={msg("targetPage.failTheCheckFor")}
+              value={failOn}
+              onChange={(e) => setFailOn(e.target.value as FailOn)}
+              options={FAIL_ON(msg)}
+            />
+            <TextField
+              label={msg("targetPage.benchmark")}
+              value={benchmark}
+              onChange={(e) => setBenchmark(e.target.value)}
+              hint={msg("targetPage.aLabelSuchAsCis")}
+              error={error}
+            />
           </div>
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => void save()} disabled={failOn === target.failOn && benchmark.trim() === (target.benchmark ?? "")}>
@@ -624,7 +788,15 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
       )}
       <FindingsTable call={call} targetId={id} summary={target ?? undefined} reload={() => (load(), reload())} />
       <Panel title={msg("targetPage.reports")} flush>
-        <DataTable label={msg("targetPage.reports")} columns={columns} rows={scans ?? []} loading={!scans} getRowId={(s) => s.id} minWidth={720} empty={<EmptyState title={msg("targetPage.noReports")}>{msg("targetPage.nothingHasBeenSentFor")}</EmptyState>} />
+        <DataTable
+          label={msg("targetPage.reports")}
+          columns={columns}
+          rows={scans ?? []}
+          loading={!scans}
+          getRowId={(s) => s.id}
+          minWidth={720}
+          empty={<EmptyState title={msg("targetPage.noReports")}>{msg("targetPage.nothingHasBeenSentFor")}</EmptyState>}
+        />
       </Panel>
     </>
   );
@@ -663,7 +835,11 @@ function WelcomePage() {
   const t = useT();
   return (
     <>
-      <PageHeader title={t("welcomePage.getStarted")} description={t("welcomePage.addWhatYouCheckAnd")} actions={<StatusBadge tone="info">{t("welcomePage.waitingForTheFirstTarget")}</StatusBadge>} />
+      <PageHeader
+        title={t("welcomePage.getStarted")}
+        description={t("welcomePage.addWhatYouCheckAnd")}
+        actions={<StatusBadge tone="info">{t("welcomePage.waitingForTheFirstTarget")}</StatusBadge>}
+      />
       <SetupPage />
     </>
   );
@@ -678,8 +854,14 @@ function SettingsPage({ page }: { page: "account" | "members" | "signin" | "toke
   if (page !== "account" && !can("admin")) return <EmptyState title={t("settingsPage.adminsOnly")}>{t("settingsPage.askAnAdminOfThis")}</EmptyState>;
   const titles = {
     account: ["Account", "Your profile, password, two-step verification and where you are signed in."],
-    members: ["Members", "Who can sign in to this posture, and with which role. Viewers see everything; editors also decide about findings; admins also add, change and delete targets, and manage members and tokens."],
-    signin: ["Sign-in", "Identity providers people can sign in with, such as OpenAsy Identity, Keycloak or Microsoft Entra ID, and which of their groups give which role."],
+    members: [
+      "Members",
+      "Who can sign in to this posture, and with which role. Viewers see everything; editors also decide about findings; admins also add, change and delete targets, and manage members and tokens.",
+    ],
+    signin: [
+      "Sign-in",
+      "Identity providers people can sign in with, such as OpenAsy Identity, Keycloak or Microsoft Entra ID, and which of their groups give which role.",
+    ],
     tokens: ["API tokens", "For scripts and CI. Each token has one role and an expiry; the secret is shown once."],
   } as const;
   return (
@@ -712,7 +894,8 @@ function Product() {
   // The install's other products (OPENASY_PRODUCTS), for the switcher; ids this UI does not know are left out.
   useEffect(() => {
     void call<{ products: ProductLink[] }>("/api/v1/products").then(
-      (r) => setProducts(r.products.filter((p): p is ProductLink & { id: ProductId } => p.id !== "posture" && (PRODUCT_IDS as readonly string[]).includes(p.id))),
+      (r) =>
+        setProducts(r.products.filter((p): p is ProductLink & { id: ProductId } => p.id !== "posture" && (PRODUCT_IDS as readonly string[]).includes(p.id))),
       () => {},
     );
   }, [call]);

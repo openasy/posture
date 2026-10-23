@@ -6,10 +6,29 @@ const parse = (results: TestResult[], summary?: { passed: number; failed: number
 
 describe("parseSarif", () => {
   it("reads the control, the resource and where it belongs", () => {
-    const { tool, findings } = parse([{ rule: "KSV017", level: "error", resource: "deployment/web", benchmark: "CIS Kubernetes 1.9", control: "5.2.1", section: "Pod security", message: "Container runs privileged" }]);
+    const { tool, findings } = parse([
+      {
+        rule: "KSV017",
+        level: "error",
+        resource: "deployment/web",
+        benchmark: "CIS Kubernetes 1.9",
+        control: "5.2.1",
+        section: "Pod security",
+        message: "Container runs privileged",
+      },
+    ]);
     expect(tool).toBe("Trivy");
     expect(findings).toEqual([
-      { fingerprint: expect.stringMatching(/^[0-9a-f]{32}$/), ruleId: "KSV017", severity: "high", resource: "deployment/web", benchmark: "CIS Kubernetes 1.9", control: "5.2.1", section: "Pod security", message: "Container runs privileged" },
+      {
+        fingerprint: expect.stringMatching(/^[0-9a-f]{32}$/),
+        ruleId: "KSV017",
+        severity: "high",
+        resource: "deployment/web",
+        benchmark: "CIS Kubernetes 1.9",
+        control: "5.2.1",
+        section: "Pod security",
+        message: "Container runs privileged",
+      },
     ]);
   });
 
@@ -29,11 +48,23 @@ describe("parseSarif", () => {
     expect(fp("a", "deployment/web")).toBe(fp("a", "deployment/web"));
     expect(fp("a", "deployment/web")).not.toBe(fp("a", "deployment/api"));
     expect(fp("a", "deployment/web")).not.toBe(fp("b", "deployment/web"));
-    expect(parse([{ rule: "a", resource: "x" }, { rule: "a", resource: "x" }]).findings).toHaveLength(1);
+    expect(
+      parse([
+        { rule: "a", resource: "x" },
+        { rule: "a", resource: "x" },
+      ]).findings,
+    ).toHaveLength(1);
   });
 
   it("leaves out controls that passed, are not failures or name no resource, and says how many had none", () => {
-    const log = JSON.parse(sarif("Trivy", [{ rule: "ok", resource: "a", kind: "pass" }, { rule: "look", resource: "b", kind: "review" }, { rule: "bad", resource: "c", kind: "fail" }, { rule: "sup", resource: "d" }]));
+    const log = JSON.parse(
+      sarif("Trivy", [
+        { rule: "ok", resource: "a", kind: "pass" },
+        { rule: "look", resource: "b", kind: "review" },
+        { rule: "bad", resource: "c", kind: "fail" },
+        { rule: "sup", resource: "d" },
+      ]),
+    );
     log.runs[0].results[3].suppressions = [{ kind: "external" }];
     log.runs[0].results.push({ ruleId: "nowhere", message: { text: "no place" }, locations: [{ physicalLocation: {} }] });
     const parsed = parseSarif(log);
@@ -49,7 +80,13 @@ describe("parseSarif", () => {
 
   it("counts checks from the report's summary, or from its passed results", () => {
     expect(parse([{ rule: "a", resource: "x" }], { passed: 90, failed: 10, total: 100 }).checks).toEqual({ total: 100, passed: 90 });
-    expect(parse([{ rule: "p", resource: "x", kind: "pass" }, { rule: "p2", resource: "y", kind: "pass" }, { rule: "f", resource: "z" }]).checks).toEqual({ total: 3, passed: 2 });
+    expect(
+      parse([
+        { rule: "p", resource: "x", kind: "pass" },
+        { rule: "p2", resource: "y", kind: "pass" },
+        { rule: "f", resource: "z" },
+      ]).checks,
+    ).toEqual({ total: 3, passed: 2 });
     expect(parse([{ rule: "a", resource: "x" }]).checks).toBeNull();
     expect(parse([{ rule: "a", resource: "x" }], { passed: 5, failed: 0, total: 3 }).checks).toBeNull();
   });

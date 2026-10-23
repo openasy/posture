@@ -16,11 +16,20 @@ describe("servers in the hosts file", () => {
     const add = (kind: string, name: string) => {
       const id = randomUUID();
       const at = new Date().toISOString();
-      app.db.prepare("INSERT INTO targets (id, name, kind, fail_on, created_at) VALUES (?, ?, ?, 'none', ?)").run(id, name, kind === "host" ? "host" : "cloud", at);
+      app.db
+        .prepare("INSERT INTO targets (id, name, kind, fail_on, created_at) VALUES (?, ?, ?, 'none', ?)")
+        .run(id, name, kind === "host" ? "host" : "cloud", at);
     };
     try {
       const summary = async () => (await json(await app.admin("/api/v1/summary"))).hostsFile;
-      expect(await summary()).toEqual({ ...state, missing: [{ name: "bastion", address: "10.0.0.2" }, { name: "web-1", address: "10.0.0.5" }, { name: "db-1", address: "10.0.0.6" }] });
+      expect(await summary()).toEqual({
+        ...state,
+        missing: [
+          { name: "bastion", address: "10.0.0.2" },
+          { name: "web-1", address: "10.0.0.5" },
+          { name: "db-1", address: "10.0.0.6" },
+        ],
+      });
       // By full name and by address; a cloud account named db-1 is not a server.
       add("host", "web-1.example.com");
       add("host", "10.0.0.2");

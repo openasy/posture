@@ -45,7 +45,9 @@ async function call(method: string, path: string, init: RequestInit = {}, concre
   // A response is either inline or a $ref to components/responses; build the JSON pointer to its schema either way.
   const shared = declared!.$ref?.split("/").pop();
   const response = shared ? spec.components.responses[shared]! : declared!;
-  const at = shared ? `openapi#/components/responses/${shared}` : `openapi#/paths/${path.replaceAll("/", "~1")}/${method.toLowerCase()}/responses/${res.status}`;
+  const at = shared
+    ? `openapi#/components/responses/${shared}`
+    : `openapi#/paths/${path.replaceAll("/", "~1")}/${method.toLowerCase()}/responses/${res.status}`;
 
   if (!response.content) {
     expect(res.headers.get("content-length") ?? "0", `${method} ${path} ${res.status} should have no body`).toBe("0");
@@ -61,7 +63,10 @@ async function call(method: string, path: string, init: RequestInit = {}, concre
   return { res, body };
 }
 
-const auth = (token: string, body?: string, type = "application/json") => ({ headers: { authorization: `Bearer ${token}`, "content-type": type }, ...(body !== undefined && { body }) });
+const auth = (token: string, body?: string, type = "application/json") => ({
+  headers: { authorization: `Bearer ${token}`, "content-type": type },
+  ...(body !== undefined && { body }),
+});
 const admin = (body?: unknown) => auth(ADMIN_TOKEN, body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body));
 const inDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString();
 
@@ -89,7 +94,19 @@ describe("openapi.json", () => {
 describe("responses match openapi.json", () => {
   let target = "";
   let fingerprint = "";
-  const report = (...rules: string[]) => sarif("Trivy", rules.map((r) => ({ rule: r, level: "error" as const, resource: `deployment/${r}`, benchmark: "CIS Kubernetes 1.9", control: "5.2.1", section: "Pod security" })), { passed: 8, failed: rules.length, total: 8 + rules.length });
+  const report = (...rules: string[]) =>
+    sarif(
+      "Trivy",
+      rules.map((r) => ({
+        rule: r,
+        level: "error" as const,
+        resource: `deployment/${r}`,
+        benchmark: "CIS Kubernetes 1.9",
+        control: "5.2.1",
+        section: "Pod security",
+      })),
+      { passed: 8, failed: rules.length, total: 8 + rules.length },
+    );
   const send = (body = report("a")) => auth(INGEST_TOKEN, body);
   const path = (query: string) => `/api/v1/scans?${query}`;
 
@@ -103,7 +120,9 @@ describe("responses match openapi.json", () => {
   });
 
   it("targets: add and change", async () => {
-    target = ((await call("POST", "/api/v1/targets", admin({ name: "prod-cluster", kind: "kubernetes", benchmark: "CIS Kubernetes 1.9" }))).body as { id: string }).id;
+    target = (
+      (await call("POST", "/api/v1/targets", admin({ name: "prod-cluster", kind: "kubernetes", benchmark: "CIS Kubernetes 1.9" }))).body as { id: string }
+    ).id;
     await call("POST", "/api/v1/targets", admin({ name: "prod-cluster", kind: "host" }));
     await call("POST", "/api/v1/targets", admin({ name: "x", kind: "mainframe" }));
     await call("POST", "/api/v1/targets", admin("nope"));
@@ -123,7 +142,10 @@ describe("responses match openapi.json", () => {
 
   it("reports and every refusal", async () => {
     await call("POST", "/api/v1/scans", send(), path("target=prod-cluster"));
-    const second = (await call("POST", "/api/v1/scans", send(report("a", "b")), path("target=prod-cluster&engine=trivy"))).body as { id: string; findings: Array<{ fingerprint: string }> };
+    const second = (await call("POST", "/api/v1/scans", send(report("a", "b")), path("target=prod-cluster&engine=trivy"))).body as {
+      id: string;
+      findings: Array<{ fingerprint: string }>;
+    };
     fingerprint = second.findings[0]!.fingerprint;
     await call("POST", "/api/v1/scans", send(), path("target=missing"));
     await call("POST", "/api/v1/scans", send("{nope"), path("target=prod-cluster"));
@@ -146,7 +168,12 @@ describe("responses match openapi.json", () => {
   it("findings and decisions", async () => {
     const { body } = await call("GET", "/api/v1/findings", admin());
     expect((body as { findings: unknown[] }).findings).toHaveLength(2);
-    await call("GET", "/api/v1/findings", admin(), "/api/v1/findings?status=resolved&severity=high,critical&q=deployment&benchmark=CIS%20Kubernetes%201.9&section=Pod%20security&limit=1");
+    await call(
+      "GET",
+      "/api/v1/findings",
+      admin(),
+      "/api/v1/findings?status=resolved&severity=high,critical&q=deployment&benchmark=CIS%20Kubernetes%201.9&section=Pod%20security&limit=1",
+    );
     await call("GET", "/api/v1/findings", admin(), `/api/v1/findings?target=${target}`);
     await call("GET", "/api/v1/findings", admin(), "/api/v1/findings?severity=urgent");
     await call("GET", "/api/v1/findings", {});
@@ -157,7 +184,8 @@ describe("responses match openapi.json", () => {
     await call("GET", "/api/v1/targets/{id}/findings", admin(), "/api/v1/targets/missing/findings");
     await call("GET", "/api/v1/targets/{id}/findings", {}, `/api/v1/targets/${target}/findings`);
 
-    const put = (fp: string, state: unknown) => call("PUT", "/api/v1/targets/{id}/findings/{fingerprint}", admin(state), `/api/v1/targets/${target}/findings/${fp}`);
+    const put = (fp: string, state: unknown) =>
+      call("PUT", "/api/v1/targets/{id}/findings/{fingerprint}", admin(state), `/api/v1/targets/${target}/findings/${fp}`);
     await put(fingerprint, { state: "false-positive", reason: "A test namespace" });
     await put(fingerprint, { state: "compensating", reason: "A network policy covers it" });
     await put(fingerprint, { state: "accepted", reason: "Until the migration", expiresAt: inDays(30) });

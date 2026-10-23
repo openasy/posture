@@ -9,13 +9,22 @@ beforeAll(async () => {
 afterAll(() => app.close());
 
 const BM = "CIS Kubernetes 1.9";
-const priv: TestResult = { rule: "KSV017", level: "error", resource: "deployment/web", benchmark: BM, control: "5.2.1", section: "Pod security", message: "Container runs privileged" };
+const priv: TestResult = {
+  rule: "KSV017",
+  level: "error",
+  resource: "deployment/web",
+  benchmark: BM,
+  control: "5.2.1",
+  section: "Pod security",
+  message: "Container runs privileged",
+};
 const root: TestResult = { rule: "KSV012", score: 5, resource: "deployment/web", benchmark: BM, control: "5.2.6", section: "Pod security" };
 const rbac: TestResult = { rule: "KSV044", level: "error", resource: "clusterrole/admin", benchmark: BM, control: "5.1.1", section: "RBAC" };
 const net: TestResult = { rule: "KSV038", score: 2, resource: "namespace/default", benchmark: BM, control: "5.3.2", section: "Network policies" };
 
 const json = async (res: Response) => (await res.json()) as any;
-const trivy = (results: TestResult[], summary?: { passed: number; failed: number; total: number }) => app.scan({ target: "prod-cluster" }, sarif("Trivy", results, summary));
+const trivy = (results: TestResult[], summary?: { passed: number; failed: number; total: number }) =>
+  app.scan({ target: "prod-cluster" }, sarif("Trivy", results, summary));
 const post = (path: string, body: unknown) => app.admin(path, { method: "POST", body: JSON.stringify(body) });
 const target = async () => (await json(await app.admin("/api/v1/targets"))).targets[0];
 
@@ -23,7 +32,14 @@ describe("targets", () => {
   it("adds a target with its kind and benchmark", async () => {
     const res = await post("/api/v1/targets", { name: "prod-cluster", kind: "kubernetes", benchmark: BM });
     expect(res.status).toBe(201);
-    expect(await json(res)).toMatchObject({ name: "prod-cluster", kind: "kubernetes", benchmark: BM, failOn: "high", score: null, open: { critical: 0, high: 0, medium: 0, low: 0 } });
+    expect(await json(res)).toMatchObject({
+      name: "prod-cluster",
+      kind: "kubernetes",
+      benchmark: BM,
+      failOn: "high",
+      score: null,
+      open: { critical: 0, high: 0, medium: 0, low: 0 },
+    });
   });
 
   it("refuses duplicates and what it cannot place", async () => {
@@ -39,12 +55,27 @@ describe("targets", () => {
 describe("reports", () => {
   it("adopts the first report of an engine, and scores it from the report's summary", async () => {
     const scan = await json(await trivy([priv, root, rbac], { passed: 47, failed: 3, total: 50 }));
-    expect(scan).toMatchObject({ engine: "trivy", tool: "Trivy", total: 3, new: 3, blocking: 0, passed: true, score: 94, checks: { total: 50, passed: 47 }, target: { name: "prod-cluster" } });
+    expect(scan).toMatchObject({
+      engine: "trivy",
+      tool: "Trivy",
+      total: 3,
+      new: 3,
+      blocking: 0,
+      passed: true,
+      score: 94,
+      checks: { total: 50, passed: 47 },
+      target: { name: "prod-cluster" },
+    });
     expect(await target()).toMatchObject({ score: 94, open: { critical: 0, high: 2, medium: 1, low: 0 } });
   });
 
   it("fails a later report for new failed controls at or above failOn", async () => {
-    const scan = await json(await trivy([priv, root, rbac, net, { rule: "KSV001", level: "error", resource: "deployment/api", benchmark: BM, control: "5.2.2", section: "Pod security" }], { passed: 45, failed: 5, total: 50 }));
+    const scan = await json(
+      await trivy(
+        [priv, root, rbac, net, { rule: "KSV001", level: "error", resource: "deployment/api", benchmark: BM, control: "5.2.2", section: "Pod security" }],
+        { passed: 45, failed: 5, total: 50 },
+      ),
+    );
     expect(scan).toMatchObject({ total: 5, new: 2, blocking: 1, passed: false, score: 90 });
     expect(scan.findings.map((f: { rule: string }) => f.rule)).toEqual(["KSV001", "KSV038"]);
   });
@@ -74,7 +105,8 @@ describe("reports", () => {
     log.runs[0].results.push({ ruleId: "nowhere", message: { text: "x" }, locations: [{ physicalLocation: {} }] });
     expect(await json(await app.scan({ target: "prod-cluster" }, JSON.stringify(log)))).toMatchObject({ total: 3, ignored: 1 });
     const t = await target();
-    const rules = async (query: string) => (await json(await app.admin(`/api/v1/targets/${t.id}/findings?${query}`))).findings.map((f: { rule: string }) => f.rule).sort();
+    const rules = async (query: string) =>
+      (await json(await app.admin(`/api/v1/targets/${t.id}/findings?${query}`))).findings.map((f: { rule: string }) => f.rule).sort();
     expect(await rules(`benchmark=${encodeURIComponent(BM)}&section=RBAC`)).toEqual(["KSV044"]);
     expect(await rules("section=Pod%20security")).toEqual(["KSV012", "KSV017"]);
     expect(await rules("q=5.1.1")).toEqual(["KSV044"]);
@@ -82,7 +114,11 @@ describe("reports", () => {
   });
 
   it("takes a gzipped body and an engine name, and refuses what it cannot place", async () => {
-    const res = await app.ingest(`/api/v1/scans?${new URLSearchParams({ target: "prod-cluster", engine: "checkov" })}`, { method: "POST", body: gzipSync(sarif("Checkov", [net])), headers: { "content-encoding": "gzip" } });
+    const res = await app.ingest(`/api/v1/scans?${new URLSearchParams({ target: "prod-cluster", engine: "checkov" })}`, {
+      method: "POST",
+      body: gzipSync(sarif("Checkov", [net])),
+      headers: { "content-encoding": "gzip" },
+    });
     expect(await json(res)).toMatchObject({ engine: "checkov", total: 1 });
     const problem = async (r: Response, status: number, code: string) => (expect(r.status).toBe(status), expect(await json(r)).toMatchObject({ code }));
     await problem(await app.scan({ target: "nope" }, sarif("Trivy", [])), 404, "not-found");
@@ -124,7 +160,10 @@ describe("decisions and policy", () => {
   it("changes what fails a check", async () => {
     const t = await target();
     const patch = (body: unknown) => app.admin(`/api/v1/targets/${t.id}`, { method: "PATCH", body: JSON.stringify(body) });
-    expect(await json(await patch({ failOn: "critical", benchmark: "CIS Kubernetes 1.10" }))).toMatchObject({ failOn: "critical", benchmark: "CIS Kubernetes 1.10" });
+    expect(await json(await patch({ failOn: "critical", benchmark: "CIS Kubernetes 1.10" }))).toMatchObject({
+      failOn: "critical",
+      benchmark: "CIS Kubernetes 1.10",
+    });
     expect(await json(await trivy([priv, rbac, { rule: "new", level: "error", resource: "x/y" }]))).toMatchObject({ new: 1, blocking: 0, passed: true });
     expect((await patch({})).status).toBe(422);
     expect((await patch({ failOn: "urgent" })).status).toBe(422);
