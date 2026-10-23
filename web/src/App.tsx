@@ -3,6 +3,7 @@ import {
   Badge,
   BrandProvider,
   Button,
+  Callout,
   DataTable,
   Dialog,
   EmptyState,
@@ -29,7 +30,7 @@ import {
 import { AccountSettings, AuthGate, MembersSettings, SignInSettings, TokensSettings, useAuth } from "@openasy/auth/react";
 import { Bug, CircleSlash, Crosshair, KeyRound, LogIn, LogOut, Plus, Settings2, Trash2, UserRound, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { api, MfaSetupRequired, Unauthorized, type FailOn, type Finding, type History, type Kind, type ProductLink, type Scan, type Severity, type Summary, type Target } from "./api.ts";
+import { api, MfaSetupRequired, Unauthorized, type FailOn, type Finding, type History, type Kind, type ProductLink, type Scan, type Severity, type HostsCoverage, type Summary, type Target } from "./api.ts";
 
 function ago(iso: string | null | undefined): string {
   if (!iso) return "never";
@@ -353,11 +354,30 @@ function FindingsTable({ call, targetId, summary, reload }: { call: Call; target
   );
 }
 
+/** Servers in the install's hosts file Posture has no posture scan for, and the file's own problems (ADR 0052). */
+function HostsCoverageNote({ file }: { file?: HostsCoverage | null }) {
+  if (!file) return null;
+  if (file.error) {
+    return (
+      <Callout tone="danger" title="The hosts file is not applied">
+        {file.error} Its last good version is used until it is fixed ({file.path}).
+      </Callout>
+    );
+  }
+  if (!file.missing.length) return null;
+  return (
+    <Callout tone="warning" title={`${file.missing.length} ${file.missing.length === 1 ? "server" : "servers"} in the hosts file ${file.missing.length === 1 ? "has" : "have"} no posture scan`}>
+      {file.missing.map((h) => h.name).join(", ")}. Send a host benchmark for each, named as the server or its address.
+    </Callout>
+  );
+}
+
 function FindingsPage({ call, summary, reload }: { call: Call; summary?: Summary; reload: () => void }) {
   const s = summary;
   return (
     <>
       <PageHeader title="Findings" description={s ? `${plural(s.targets, "target")} · last report ${ago(s.lastScanAt)}` : undefined} />
+      <HostsCoverageNote file={s?.hostsFile} />
       {s && (
         <KpiGrid minWidth={150}>
           <KpiCard label="Average score" value={s.averageScore === null ? "–" : `${s.averageScore}%`} tone={s.averageScore === null ? "info" : s.averageScore >= 90 ? "success" : s.averageScore >= 70 ? "warning" : "danger"} />

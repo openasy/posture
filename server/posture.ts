@@ -344,6 +344,11 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
       }
     },
 
+    /** What this product knows servers by, to say which in the hosts file it has nothing for (ADR 0052): host targets. */
+    knownHosts(): string[] {
+      return (db.prepare("SELECT name FROM targets WHERE kind = 'host'").all() as Array<{ name: string }>).map((r) => r.name);
+    },
+
     summary() {
       const targets = (db.prepare("SELECT COUNT(*) AS n FROM targets").get() as { n: number }).n;
       const suppressed = (db.prepare(`SELECT COUNT(*) AS n FROM findings WHERE resolved_at IS NULL AND ${SUPPRESSED}`).get(now()) as { n: number }).n;

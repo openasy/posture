@@ -77,6 +77,7 @@ backups.
 | `PORT` | `8080` | HTTP port |
 | `POSTURE_PUBLIC_URL` | `http://localhost:8080` | The address people open, with `https://` behind your TLS proxy |
 | `OPENASY_PRODUCTS` | | The install's other OpenAsy products, for the product switcher. Give every product the same value |
+| `OPENASY_HOSTS` | | The install's hosts file, shared with Infrastructure and Logs (ADR 0052). The main page lists the servers in it with no posture scan, matched by name or address in host targets |
 | `POSTURE_INGEST_TOKEN` | | Lets CI send reports and nothing else. An API token with the editor role works too |
 | `POSTURE_SECRETS_KEY_FILE` | `/run/secrets/openasy-kek` | 32-byte key-encryption key |
 | `POSTURE_DB` | `/data/posture.db` | SQLite file (WAL), on the `/data` volume |

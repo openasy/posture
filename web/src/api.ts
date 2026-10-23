@@ -17,6 +17,17 @@ export interface Summary {
   failingChecks: number;
   lastScanAt: string | null;
   averageScore: number | null;
+  hostsFile: HostsCoverage | null;
+}
+
+/** The hosts file (ADR 0052) and the servers in it this product has nothing for. */
+export interface HostsCoverage {
+  path: string;
+  appliedAt: string | null;
+  entries: number;
+  error: string | null;
+  warnings: string[];
+  missing: Array<{ name: string; address: string }>;
 }
 
 export type Kind = "cloud" | "kubernetes" | "host";
