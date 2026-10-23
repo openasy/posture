@@ -83,7 +83,7 @@ backups.
 | `POSTURE_RETENTION_DAYS` | `365` | Reports, and fixed findings nobody decided about, older than this are deleted |
 | `POSTURE_METRICS_PORT` | | Serve `/metrics` on this port only (ADR 0026) |
 | `POSTURE_HEADLESS` | `false` | `true` serves only the API |
-| `POSTURE_PASSWORD_SIGN_IN`, `POSTURE_OIDC_*` | | Sign-in, as in every OpenAsy product ([@openasy/auth](https://github.com/openasy/auth)) |
+| `POSTURE_PASSWORD_SIGN_IN`, `OPENASY_OIDC_*` | | Sign-in, as in every OpenAsy product ([@openasy/auth](https://github.com/openasy/auth)) |
 
 The container runs as non-root with a read-only root filesystem, no capabilities and `no-new-privileges`.
 
