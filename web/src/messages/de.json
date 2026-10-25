@@ -58,6 +58,29 @@
     "inTheHostsFileNo_other": "{{count}} Server in der Hostdatei haben keinen Posture-Scan",
     "whatToDo": "Senden Sie für jeden einen Host-Benchmark, benannt nach dem Server oder seiner Adresse."
   },
+  "overviewPage": {
+    "overview": "Übersicht",
+    "openOverTime": "Offene Befunde im Zeitverlauf",
+    "openOverTimeDetail": "Am Ende jedes der letzten 30 Tage, nach Schweregrad, ohne das, was eine Entscheidung damals zurückgestellt hat.",
+    "bySeverity": "Nach Schweregrad",
+    "bySeverityDetail": "Jetzt offene Befunde.",
+    "open": "offen",
+    "foundAndFixed": "Gefunden und behoben, pro Woche",
+    "foundAndFixedDetail": "Befunde, die in jeder der letzten 12 Wochen erstmals gefunden und behoben wurden.",
+    "found": "Gefunden",
+    "fixed": "Behoben",
+    "checksPassed": "Bestandene Prüfungen",
+    "checksPassedDetail": "Prüfungen der letzten 30 Tage, die nichts Neues ab der Schwelle fanden.",
+    "passedOfAll": "{{passed}} von {{total}} bestanden",
+    "noChecks": "Keine Prüfungen in 30 Tagen",
+    "nothingOpen": "Nichts offen",
+    "top1": "Am häufigsten nicht bestandene Regeln",
+    "top1Detail": "Schlimmster Schweregrad, dann die meisten Befunde zuerst.",
+    "top2": "Ziele mit den meisten offenen",
+    "top2Detail": "Offene Befunde jedes Ziels; für die Bewertung darüberfahren.",
+    "scoreOverTime": "Bewertung im Zeitverlauf",
+    "scoreOverTimeDetail": "Der Mittelwert der neuesten Bewertung jedes Ziels am Ende jedes der letzten 30 Tage."
+  },
   "findingsPage": {
     "findings": "Befunde",
     "lastReport": "{{plural}} · letzter Bericht {{ago}}",
@@ -152,6 +175,7 @@
     "signOut": "Abmelden"
   },
   "product": {
+    "overview": "Übersicht",
     "findings": "Befunde",
     "targets": "Ziele",
     "setup": "Einrichtung",

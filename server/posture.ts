@@ -64,6 +64,8 @@ export function parseLimit(value: string | null, max = 500, fallback = 100): num
 }
 
 export type Counts = Record<Severity, number>;
+const DAY = 86_400_000;
+const SEVERITY_BY_RANK = ["low", "low", "medium", "high", "critical"] as const;
 const zero = (): Counts => ({ critical: 0, high: 0, medium: 0, low: 0 });
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -403,6 +405,68 @@ export function createPosture(db: DatabaseSync, { retentionDays = 365 }: Posture
         lastScanAt,
         averageScore: scores.length ? round1(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
       };
+    },
+
+    /** What the overview draws: open by severity each day, found and fixed each week, the rules and targets with the most open, and checks. */
+    overview() {
+      const at = now();
+      const today = Math.floor(Date.parse(at) / DAY) * DAY;
+      // Open at the end of each day: found by then, not fixed by then, and not set aside by a decision in force then.
+      const openAt = db.prepare(
+        `SELECT severity, COUNT(*) AS n FROM findings
+         WHERE first_seen <= ? AND (resolved_at IS NULL OR resolved_at > ?)
+           AND NOT (triage <> 'open' AND triaged_at <= ? AND (expires_at IS NULL OR expires_at > ?))
+         GROUP BY severity`,
+      );
+      const days = Array.from({ length: 30 }, (_, i) => {
+        const start = today - (29 - i) * DAY;
+        const end = i === 29 ? at : new Date(start + DAY).toISOString();
+        const open = zero();
+        for (const r of openAt.all(end, end, end, end) as Array<{ severity: Severity; n: number }>) open[r.severity] = r.n;
+        return { day: new Date(start).toISOString().slice(0, 10), open };
+      });
+      const found = db.prepare("SELECT COUNT(*) AS n FROM findings WHERE first_seen >= ? AND first_seen < ?");
+      const fixed = db.prepare("SELECT COUNT(*) AS n FROM findings WHERE resolved_at >= ? AND resolved_at < ?");
+      const weeks = Array.from({ length: 12 }, (_, i) => {
+        const start = new Date(today + DAY - (12 - i) * 7 * DAY).toISOString();
+        const end = new Date(today + DAY - (11 - i) * 7 * DAY).toISOString();
+        return { week: start.slice(0, 10), new: (found.get(start, end) as { n: number }).n, fixed: (fixed.get(start, end) as { n: number }).n };
+      });
+      const topRules = (
+        db
+          .prepare(
+            `SELECT rule_id, MAX(control) AS control, COUNT(*) AS n, MAX(${RANK_SQL}) AS rank FROM findings WHERE resolved_at IS NULL AND NOT ${SUPPRESSED}
+             GROUP BY rule_id ORDER BY rank DESC, n DESC, rule_id LIMIT 8`,
+          )
+          .all(at) as Array<{ rule_id: string; control: string | null; n: number; rank: number }>
+      ).map((r) => ({ rule: r.rule_id, control: r.control, open: r.n, severity: SEVERITY_BY_RANK[r.rank]! }));
+      const topTargets = (
+        db
+          .prepare(
+            `SELECT t.id, t.name, t.kind, COUNT(f.fingerprint) AS n FROM targets t
+             LEFT JOIN findings f ON f.target_id = t.id AND f.resolved_at IS NULL AND NOT ${SUPPRESSED.replaceAll("triage", "f.triage").replaceAll("expires_at", "f.expires_at")}
+             GROUP BY t.id ORDER BY n DESC, t.name LIMIT 8`,
+          )
+          .all(at) as Array<{ id: string; name: string; kind: string; n: number }>
+      ).map((r) => ({ id: r.id, name: r.name, kind: r.kind, open: r.n, score: latestScore(r.id) }));
+      // The mean of each target's newest score at the end of each day.
+      const scoreAt = db.prepare(
+        `SELECT AVG(score) AS s FROM scans s WHERE score IS NOT NULL AND created_at = (SELECT MAX(created_at) FROM scans x WHERE x.target_id = s.target_id AND x.score IS NOT NULL AND x.created_at <= ?)`,
+      );
+      const scores = days.map((d, i) => {
+        const end = i === 29 ? at : new Date(Date.parse(`${d.day}T00:00:00Z`) + DAY).toISOString();
+        const s = (scoreAt.get(end) as { s: number | null }).s;
+        return { day: d.day, score: s === null ? null : round1(s) };
+      });
+      const checks = (n: number) => {
+        const since = new Date(Date.parse(at) - n * DAY).toISOString();
+        const r = db.prepare("SELECT SUM(blocking = 0) AS passed, SUM(blocking > 0) AS failed FROM scans WHERE  created_at > ?").get(since) as {
+          passed: number | null;
+          failed: number | null;
+        };
+        return { passed: r.passed ?? 0, failed: r.failed ?? 0 };
+      };
+      return { open: openCounts(), days, weeks, scores, topRules, topTargets, checks: { days7: checks(7), days30: checks(30) } };
     },
 
     severityTotals: () => openCounts(),

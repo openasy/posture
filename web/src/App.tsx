@@ -24,16 +24,41 @@ import {
   TextField,
   TimeSeriesChart,
   usePath,
-  type Column,
-  type ProductId,
   useThemePreference,
   useAgo,
   toLocale,
   useLocalePreference,
+  BarList,
+  DonutChart,
+  Gauge,
+  OverviewGrid,
+  SEVERITY_META,
+  StackedBarChart,
+  TONE_COLORS,
+  type Column,
+  type ProductId,
 } from "@openasy/ui";
 import { AccountSettings, AuthGate, MembersSettings, SignInSettings, TokensSettings, useAccountMenu, useAuth, useInstallBrand } from "@openasy/auth/react";
 import colophon from "virtual:openasy-colophon";
-import { Bug, CircleSlash, Crosshair, KeyRound, LogIn, LogOut, Plus, Trash2, UserRound, Users, X } from "lucide-react";
+import {
+  Bug,
+  CircleAlert,
+  CircleSlash,
+  CircleX,
+  Crosshair,
+  Gauge as GaugeIcon,
+  KeyRound,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Plus,
+  ShieldAlert,
+  Trash2,
+  TriangleAlert,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   api,
@@ -43,6 +68,7 @@ import {
   type Finding,
   type History,
   type Kind,
+  type Overview,
   type ProductLink,
   type Scan,
   type Severity,
@@ -54,14 +80,15 @@ import { useT, type T } from "./i18n.ts";
 import { search } from "./search.ts";
 
 const PAGES = ["targets", "setup", "account", "members", "signin", "tokens", "about"] as const;
-type Route = { page: "findings" | (typeof PAGES)[number] } | { page: "target"; id: string };
+type Route = { page: "overview" | "findings" | (typeof PAGES)[number] } | { page: "target"; id: string };
 /** The first path segments that are pages of this UI, for followLinks. */
-export const PATHS = ["findings", ...PAGES];
+export const PATHS = ["overview", "findings", ...PAGES];
 function parseRoute(path: string): Route {
   const [page, id] = path.replace(/^\//, "").split("/");
   if (page === "targets" && id) return { page: "target", id: decodeURIComponent(id) };
   if ((PAGES as readonly string[]).includes(page ?? "")) return { page: page as (typeof PAGES)[number] };
-  return { page: "findings" };
+  if (page === "findings") return { page: "findings" };
+  return { page: "overview" };
 }
 
 /** Data loading with the session; when it ends, the sign-in screen comes back. */
@@ -454,6 +481,169 @@ function HostsCoverageNote({ file }: { file?: HostsCoverage | null }) {
   );
 }
 
+function OverviewPage({ call, summary }: { call: Call; summary?: Summary }) {
+  const ago = useAgo();
+  const t = useT();
+  const [o, setO] = useState<Overview>();
+  useEffect(() => void call<Overview>("/api/v1/overview").then(setO, () => {}), [call, summary]);
+  const s = summary;
+  const day = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  const color = (sev: Severity) => TONE_COLORS[SEVERITY_META[sev].tone];
+  const checks = o ? o.checks.days30.passed + o.checks.days30.failed : 0;
+  // Days before the first score are left out, rather than drawn as 0%.
+  const scored = o ? o.scores.slice(o.scores.findIndex((x) => x.score !== null)) : [];
+  const hasScore = o?.scores.some((x) => x.score !== null) ?? false;
+  return (
+    <>
+      <PageHeader
+        title={t("overviewPage.overview")}
+        description={s ? t("findingsPage.lastReport", { plural: t("plurals.target", { count: s.targets }), ago: ago(s.lastScanAt) }) : undefined}
+      />
+      <HostsCoverageNote file={s?.hostsFile} />
+      {s && (
+        <KpiGrid minWidth={150}>
+          <KpiCard
+            label={t("findingsPage.averageScore")}
+            value={s.averageScore === null ? "–" : `${s.averageScore}%`}
+            icon={GaugeIcon}
+            tone={s.averageScore === null ? "info" : s.averageScore >= 90 ? "success" : s.averageScore >= 70 ? "warning" : "danger"}
+            trend={hasScore ? scored.map((x) => x.score ?? 0) : undefined}
+          />
+          <KpiCard
+            label={t("findingsPage.critical")}
+            value={s.open.critical}
+            icon={ShieldAlert}
+            tone={s.open.critical ? "critical" : undefined}
+            trend={o?.days.map((d) => d.open.critical)}
+            trendColor={TONE_COLORS.critical}
+            href="/findings"
+          />
+          <KpiCard
+            label={t("findingsPage.high")}
+            value={s.open.high}
+            icon={TriangleAlert}
+            tone={s.open.high ? "danger" : undefined}
+            trend={o?.days.map((d) => d.open.high)}
+            trendColor={TONE_COLORS.danger}
+            href="/findings"
+          />
+          <KpiCard
+            label={t("findingsPage.medium")}
+            value={s.open.medium}
+            icon={CircleAlert}
+            trend={o?.days.map((d) => d.open.medium)}
+            trendColor={TONE_COLORS.warning}
+          />
+          <KpiCard label={t("findingsPage.failedChecks7Days")} value={s.failingChecks} icon={CircleX} tone={s.failingChecks ? "warning" : "success"} />
+        </KpiGrid>
+      )}
+      {o && (
+        <OverviewGrid>
+          <Panel title={t("overviewPage.openOverTime")} description={t("overviewPage.openOverTimeDetail")}>
+            <StackedBarChart
+              label={t("overviewPage.openOverTime")}
+              categories={o.days.map((d) => day(d.day))}
+              segments={(["low", "medium", "high", "critical"] as const).map((k) => ({ id: k, name: t(`findingsPage.${k}`), color: color(k) }))}
+              values={o.days.map((d) => [d.open.low, d.open.medium, d.open.high, d.open.critical])}
+              height={190}
+              xTicks={6}
+            />
+          </Panel>
+          <Panel title={t("overviewPage.bySeverity")} description={t("overviewPage.bySeverityDetail")}>
+            <DonutChart
+              label={t("overviewPage.bySeverity")}
+              caption={t("overviewPage.open")}
+              slices={(["critical", "high", "medium", "low"] as const).map((k) => ({
+                id: k,
+                name: t(`findingsPage.${k}`),
+                value: o.open[k],
+                color: color(k),
+                href: "/findings",
+              }))}
+            />
+          </Panel>
+        </OverviewGrid>
+      )}
+      {hasScore && (
+        <Panel title={t("overviewPage.scoreOverTime")} description={t("overviewPage.scoreOverTimeDetail")}>
+          <TimeSeriesChart
+            label={t("overviewPage.scoreOverTime")}
+            labels={scored.map((x) => day(x.day))}
+            height={170}
+            yMax={100}
+            xTicks={6}
+            format={(v) => `${v}%`}
+            series={[{ id: "score", name: t("findingsPage.averageScore"), data: scored.map((x) => x.score ?? 0), color: TONE_COLORS.success }]}
+          />
+        </Panel>
+      )}
+      {o && (
+        <OverviewGrid>
+          <Panel title={t("overviewPage.foundAndFixed")} description={t("overviewPage.foundAndFixedDetail")}>
+            <TimeSeriesChart
+              label={t("overviewPage.foundAndFixed")}
+              labels={o.weeks.map((w) => day(w.week))}
+              height={190}
+              xTicks={6}
+              series={[
+                { id: "new", name: t("overviewPage.found"), data: o.weeks.map((w) => w.new), color: TONE_COLORS.danger },
+                { id: "fixed", name: t("overviewPage.fixed"), data: o.weeks.map((w) => w.fixed), color: TONE_COLORS.success },
+              ]}
+            />
+          </Panel>
+          <Panel title={t("overviewPage.checksPassed")} description={t("overviewPage.checksPassedDetail")}>
+            {checks ? (
+              <Gauge
+                label={t("overviewPage.checksPassed")}
+                value={o.checks.days30.passed}
+                max={checks}
+                tone={o.checks.days30.failed === 0 ? "success" : o.checks.days30.passed / checks >= 0.8 ? "warning" : "danger"}
+                caption={t("overviewPage.passedOfAll", { passed: o.checks.days30.passed, total: checks })}
+              />
+            ) : (
+              <EmptyState title={t("overviewPage.noChecks")} />
+            )}
+          </Panel>
+        </OverviewGrid>
+      )}
+      {o && (
+        <OverviewGrid layout="halves">
+          <Panel title={t("overviewPage.top1")} description={t("overviewPage.top1Detail")}>
+            {o.topRules.length ? (
+              <BarList
+                label={t("overviewPage.top1")}
+                items={o.topRules.map((x) => ({
+                  id: x.rule,
+                  label: <span title={x.control ? `${x.rule} · ${x.control}` : x.rule}>{x.rule}</span>,
+                  value: x.open,
+                  color: color(x.severity),
+                }))}
+              />
+            ) : (
+              <EmptyState title={t("overviewPage.nothingOpen")} />
+            )}
+          </Panel>
+          <Panel title={t("overviewPage.top2")} description={t("overviewPage.top2Detail")}>
+            {o.topTargets.length ? (
+              <BarList
+                label={t("overviewPage.top2")}
+                items={o.topTargets.map((x) => ({
+                  id: x.id,
+                  label: <span title={x.score === null ? x.name : `${x.name} · ${x.score}%`}>{x.name}</span>,
+                  value: x.open,
+                  href: `/targets/${x.id}`,
+                }))}
+              />
+            ) : (
+              <EmptyState title={t("overviewPage.nothingOpen")} />
+            )}
+          </Panel>
+        </OverviewGrid>
+      )}
+    </>
+  );
+}
+
 function FindingsPage({ call, summary, reload }: { call: Call; summary?: Summary; reload: () => void }) {
   const ago = useAgo();
   const t = useT();
@@ -465,20 +655,6 @@ function FindingsPage({ call, summary, reload }: { call: Call; summary?: Summary
         description={s ? t("findingsPage.lastReport", { plural: t("plurals.target", { count: s.targets }), ago: ago(s.lastScanAt) }) : undefined}
       />
       <HostsCoverageNote file={s?.hostsFile} />
-      {s && (
-        <KpiGrid minWidth={150}>
-          <KpiCard
-            label={t("findingsPage.averageScore")}
-            value={s.averageScore === null ? "–" : `${s.averageScore}%`}
-            tone={s.averageScore === null ? "info" : s.averageScore >= 90 ? "success" : s.averageScore >= 70 ? "warning" : "danger"}
-          />
-          <KpiCard label={t("findingsPage.critical")} value={s.open.critical} footer={<SeverityBadge severity="critical" />} />
-          <KpiCard label={t("findingsPage.high")} value={s.open.high} footer={<SeverityBadge severity="high" />} />
-          <KpiCard label={t("findingsPage.medium")} value={s.open.medium} footer={<SeverityBadge severity="medium" />} />
-          <KpiCard label={t("findingsPage.low")} value={s.open.low} footer={<SeverityBadge severity="low" />} />
-          <KpiCard label={t("findingsPage.failedChecks7Days")} value={s.failingChecks} tone={s.failingChecks ? "warning" : "success"} />
-        </KpiGrid>
-      )}
       <FindingsTable call={call} summary={s} reload={reload} />
     </>
   );
@@ -890,6 +1066,7 @@ function Product() {
   }, [reload]);
 
   const nav = [
+    { id: "overview", label: msg("product.overview"), icon: LayoutDashboard },
     { id: "findings", label: msg("product.findings"), icon: Bug },
     { id: "targets", label: msg("product.targets"), icon: Crosshair, count: summary?.targets },
   ];
@@ -926,8 +1103,10 @@ function Product() {
       onThemeChange={setTheme}
       onLanguageChange={(code) => setLocale(toLocale(code))}
     >
-      {route.page === "findings" && summary && summary.targets === 0 ? (
+      {(route.page === "overview" || route.page === "findings") && summary && summary.targets === 0 ? (
         <WelcomePage />
+      ) : route.page === "overview" ? (
+        <OverviewPage call={call} summary={summary} />
       ) : route.page === "findings" ? (
         <FindingsPage call={call} summary={summary} reload={reload} />
       ) : route.page === "targets" ? (

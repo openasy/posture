@@ -236,6 +236,7 @@ export function createApp({
     { method: "GET", path: "/api/v1/version", auth: "none", handle: () => ({ product: "posture", version }) },
     { method: "GET", path: "/api/v1/products", auth: "viewer", handle: () => ({ products }) },
     { method: "GET", path: "/api/v1/summary", auth: "viewer", handle: () => ({ ...posture.summary(), hostsFile: coverage() }) },
+    { method: "GET", path: "/api/v1/overview", auth: "viewer", handle: () => posture.overview() },
 
     // Reports in, from CI or from whoever runs the checker. The answer says whether the check passes.
     {

@@ -113,3 +113,17 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
+
+/** What the overview draws (GET /api/v1/overview). */
+export interface Overview {
+  /** Open at the end of each of the last 30 days (UTC), oldest first; the last is now. */
+  days: Array<{ day: string; open: Record<Severity, number> }>;
+  /** Found and fixed in each of the last 12 weeks, oldest first. */
+  weeks: Array<{ week: string; new: number; fixed: number }>;
+  checks: { days7: { passed: number; failed: number }; days30: { passed: number; failed: number } };
+  open: Record<Severity, number>;
+  /** The mean of each target's newest score at the end of each day; null before any score. */
+  scores: Array<{ day: string; score: number | null }>;
+  topRules: Array<{ rule: string; control: string | null; open: number; severity: Severity }>;
+  topTargets: Array<{ id: string; name: string; kind: string; open: number; score: number | null }>;
+}

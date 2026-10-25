@@ -216,3 +216,28 @@ describe("access", () => {
     expect(await json(await app.admin("/api/v1/summary"))).toMatchObject({ targets: 1, averageScore: 90 });
   });
 });
+
+describe("the overview", () => {
+  let own: Awaited<ReturnType<typeof startApp>>;
+  beforeAll(async () => {
+    own = await startApp({ version: "0.1.0" });
+  });
+  afterAll(() => own.close());
+
+  it("counts open by day, keeps the score, and ranks rules and targets", async () => {
+    await own.admin("/api/v1/targets", { method: "POST", body: JSON.stringify({ name: "prod-cluster", kind: "kubernetes", benchmark: BM }) });
+    const scan = (results: TestResult[], summary?: { passed: number; failed: number; total: number }) =>
+      own.scan({ target: "prod-cluster" }, sarif("Trivy", results, summary));
+    await scan([priv, root, rbac], { passed: 47, failed: 3, total: 50 });
+    await scan([priv, root], { passed: 48, failed: 2, total: 50 });
+    const o = await json(await own.admin("/api/v1/overview"));
+    expect(o.open).toEqual({ critical: 0, high: 1, medium: 1, low: 0 });
+    expect(o.days.at(-1).open).toEqual(o.open);
+    expect(o.weeks.at(-1)).toEqual({ week: expect.any(String), new: 3, fixed: 1 });
+    expect(o.scores.at(-1).score).toBe(96);
+    expect(o.scores[0].score).toBeNull();
+    expect(o.topRules[0]).toMatchObject({ rule: "KSV017", control: "5.2.1", open: 1, severity: "high" });
+    expect(o.topTargets).toEqual([{ id: expect.any(String), name: "prod-cluster", kind: "kubernetes", open: 2, score: 96 }]);
+    expect(o.checks.days7.passed + o.checks.days7.failed).toBe(2);
+  });
+});

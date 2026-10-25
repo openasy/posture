@@ -960,6 +960,49 @@
         "x-openasy-role": "viewer"
       }
     },
+    "/api/v1/overview": {
+      "get": {
+        "operationId": "getOverview",
+        "tags": [
+          "Product"
+        ],
+        "summary": "What the overview draws",
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "description": "Open findings by severity now and at the end of each of the last 30 days, found and fixed in each of the last 12 weeks, the mean score of the targets each day, the rules and targets with the most open, and reports that passed and failed.\n\nNeeds the viewer role.",
+        "responses": {
+          "200": {
+            "description": "What the overview draws.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-openasy-role": "viewer"
+      }
+    },
     "/api/v1/version": {
       "get": {
         "operationId": "getVersion",
@@ -2172,6 +2215,203 @@
                 },
                 "address": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Overview": {
+        "type": "object",
+        "required": [
+          "open",
+          "days",
+          "weeks",
+          "scores",
+          "topRules",
+          "topTargets",
+          "checks"
+        ],
+        "properties": {
+          "open": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "days": {
+            "type": "array",
+            "description": "Open findings at the end of each of the last 30 days (UTC), oldest first; the last one is now.",
+            "items": {
+              "type": "object",
+              "required": [
+                "day",
+                "open"
+              ],
+              "properties": {
+                "day": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "open": {
+                  "$ref": "#/components/schemas/Counts"
+                }
+              }
+            }
+          },
+          "weeks": {
+            "type": "array",
+            "description": "Findings first seen and fixed in each of the last 12 weeks, oldest first.",
+            "items": {
+              "type": "object",
+              "required": [
+                "week",
+                "new",
+                "fixed"
+              ],
+              "properties": {
+                "week": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "The week's first day."
+                },
+                "new": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fixed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "scores": {
+            "type": "array",
+            "description": "The mean of each target's newest score at the end of each of the last 30 days; null before any score.",
+            "items": {
+              "type": "object",
+              "required": [
+                "day",
+                "score"
+              ],
+              "properties": {
+                "day": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "score": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "topRules": {
+            "type": "array",
+            "description": "Worst severity, then most open first; eight at most.",
+            "items": {
+              "type": "object",
+              "required": [
+                "rule",
+                "control",
+                "open",
+                "severity"
+              ],
+              "properties": {
+                "rule": {
+                  "type": "string"
+                },
+                "control": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "open": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "severity": {
+                  "$ref": "#/components/schemas/Severity"
+                }
+              }
+            }
+          },
+          "topTargets": {
+            "type": "array",
+            "description": "Most open first; eight at most.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "kind",
+                "open",
+                "score"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "open": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "score": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "checks": {
+            "type": "object",
+            "description": "Checks that passed and failed in the last 7 and 30 days.",
+            "required": [
+              "days7",
+              "days30"
+            ],
+            "properties": {
+              "days7": {
+                "type": "object",
+                "required": [
+                  "passed",
+                  "failed"
+                ],
+                "properties": {
+                  "passed": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "failed": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "days30": {
+                "type": "object",
+                "required": [
+                  "passed",
+                  "failed"
+                ],
+                "properties": {
+                  "passed": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "failed": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
                 }
               }
             }
