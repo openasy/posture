@@ -1,0 +1,188 @@
+{
+  "sevCounts": {
+    "none": "Keine"
+  },
+  "findingPanel": {
+    "details": "Details zu {{rule}}",
+    "closeDetails": "Details schließen",
+    "compensatingControl": "Ausgleichende Kontrolle",
+    "falsePositive": "Fehlalarm",
+    "acceptedRisk": "Akzeptiertes Risiko",
+    "acceptanceExpired": "Akzeptanz abgelaufen",
+    "until": ", bis {{value}}",
+    "changeDecision": "Entscheidung ändern",
+    "triage": "Bewerten",
+    "openAgain": "Wieder öffnen",
+    "triage2": "{{rule}} bewerten",
+    "theDecisionStaysWithThis": "Die Entscheidung bleibt über alle Berichte bei diesem Befund, damit er die nächste Prüfung nicht fehlschlagen lässt. Nennen Sie den Grund, für die nächste Überprüfung.",
+    "cancel": "Abbrechen",
+    "saveDecision": "Entscheidung speichern",
+    "decision": "Entscheidung",
+    "compensatingControlSomethingElseCovers": "Ausgleichende Kontrolle: Etwas anderes deckt es ab",
+    "reason": "Grund",
+    "whyForTheNextReview": "Warum, für die nächste Überprüfung.",
+    "for": "Für",
+    "n30Days": "30 Tage",
+    "n90Days": "90 Tage",
+    "n180Days": "180 Tage",
+    "n1Year": "1 Jahr"
+  },
+  "findingsTable": {
+    "severity": "Schweregrad",
+    "rule": "Regel",
+    "resource": "Ressource",
+    "engine": "Engine",
+    "target": "Ziel",
+    "firstSeen": "Zuerst gesehen",
+    "findingViews": "Befundansichten",
+    "open": "Offen",
+    "decided": "Entschieden",
+    "fixed": "Behoben",
+    "benchmark": "Benchmark",
+    "section": "Abschnitt",
+    "searchRuleControlResourceOr": "Regel, Kontrolle, Ressource oder Nachricht suchen",
+    "controlsThatFailMostSevere": "Fehlschlagende Kontrollen, die schwersten zuerst",
+    "loadMore": "Mehr laden",
+    "findings": "Befunde",
+    "noOpenFindings": "Keine offenen Befunde",
+    "nothingTriaged": "Nichts bewertet",
+    "nothingFixedYet": "Noch nichts behoben",
+    "sendAReportToSee": "Senden Sie einen Bericht, um Befunde zu sehen. Siehe",
+    "setup": "Einrichtung",
+    "nothingMatchesTheseFilters": "Nichts passt zu diesen Filtern."
+  },
+  "hostsCoverageNote": {
+    "itsLastGoodVersionIs": "{{error}}Bis zur Korrektur wird die letzte gültige Fassung verwendet ({{path}}).",
+    "theHostsFileIsNot": "Die Hostdatei wird nicht angewendet",
+    "inTheHostsFileNo_one": "{{count}} Server in der Hostdatei hat keinen Posture-Scan",
+    "inTheHostsFileNo_other": "{{count}} Server in der Hostdatei haben keinen Posture-Scan",
+    "whatToDo": "Senden Sie für jeden einen Host-Benchmark, benannt nach dem Server oder seiner Adresse."
+  },
+  "findingsPage": {
+    "findings": "Befunde",
+    "lastReport": "{{plural}} · letzter Bericht {{ago}}",
+    "averageScore": "Durchschnittliche Bewertung",
+    "critical": "Kritisch",
+    "high": "Hoch",
+    "medium": "Mittel",
+    "low": "Niedrig",
+    "failedChecks7Days": "Fehlgeschlagene Prüfungen, 7 Tage"
+  },
+  "checkStatus": {
+    "passed": "Bestanden",
+    "failed": "Fehlgeschlagen"
+  },
+  "scoreBadge": {
+    "noScore": "Keine Bewertung"
+  },
+  "trend": {
+    "theTrendAppearsWithThe": "Der Verlauf erscheint mit dem zweiten Bericht, der eine Prüfungsanzahl enthält.",
+    "scoreOfEachEngineOver": "Bewertung jeder Engine über die letzten {{length}} Berichte"
+  },
+  "targetsPage": {
+    "target": "Ziel",
+    "kind": "Art",
+    "benchmark": "Benchmark",
+    "score": "Bewertung",
+    "failing": "Fehlschlagend",
+    "check": "Prüfung",
+    "targets": "Ziele",
+    "aCloudAccountAKubernetes": "Ein Cloud-Konto, ein Kubernetes-Cluster oder eine Gruppe von Hosts, deren Konfiguration an einem Benchmark gemessen wird.",
+    "addTarget": "Ziel hinzufügen",
+    "noTargetsYet": "Noch keine Ziele",
+    "addTheClusterAccountOr": "Fügen Sie den Cluster, das Konto oder die Hosts hinzu, die Sie prüfen.",
+    "anAdminAddsWhatIs": "Ein Admin fügt hinzu, was geprüft wird.",
+    "addATarget": "Ziel hinzufügen",
+    "reportsAreSentForIt": "Berichte werden dafür unter seinem Namen gesendet.",
+    "cancel": "Abbrechen",
+    "name": "Name",
+    "lettersDigitsAndCiSends": "Buchstaben, Ziffern, . _ und -. CI sendet Berichte unter diesem Namen.",
+    "optionalSuchAsCisKubernetes": "Optional, etwa CIS Kubernetes 1.9."
+  },
+  "targetPage": {
+    "targetNotFound": "Ziel nicht gefunden",
+    "itMayHaveBeenDeleted": "Es wurde vielleicht gelöscht.",
+    "backToTargets": "Zurück zu den Zielen",
+    "report": "Bericht",
+    "engine": "Engine",
+    "score": "Bewertung",
+    "failing": "Fehlschlagend",
+    "new": "Neu",
+    "fixed": "Behoben",
+    "check": "Prüfung",
+    "target": "Ziel",
+    "scoreOverTime": "Bewertung im Zeitverlauf",
+    "theShareOfChecksThat": "Der Anteil bestandener Prüfungen in jedem Bericht, der eine Anzahl enthielt.",
+    "policy": "Richtlinie",
+    "whatACheckTreatsAs": "Was eine Prüfung als Fehlschlag wertet. Nur fehlgeschlagene Kontrollen, die eine Engine zuvor nicht gemeldet hat und über die niemand entschieden hat, können sie fehlschlagen lassen.",
+    "failTheCheckFor": "Prüfung fehlschlagen lassen bei",
+    "benchmark": "Benchmark",
+    "aLabelSuchAsCis": "Eine Bezeichnung, etwa CIS Kubernetes 1.9.",
+    "savePolicy": "Richtlinie speichern",
+    "deleteTarget": "Ziel löschen",
+    "delete": "{{name}} löschen?",
+    "itsReportsFindingsAndDecisions": "Seine Berichte, Befunde und Entscheidungen werden gelöscht. Für einen späteren Bericht muss das Ziel erneut hinzugefügt werden.",
+    "cancel": "Abbrechen",
+    "delete2": "Löschen",
+    "reports": "Berichte",
+    "noReports": "Keine Berichte",
+    "nothingHasBeenSentFor": "Für dieses Ziel wurde nichts gesendet."
+  },
+  "setupPage": {
+    "setup": "Einrichtung",
+    "runTrivyKubescapeCheckovOr": "Führen Sie Trivy, kubescape, checkov oder Prowler gegen das aus, was Sie prüfen, und senden Sie den Bericht hierher. Die Antwort sagt, ob die Prüfung besteht.",
+    "sendAReport": "Bericht senden",
+    "addTheTargetFirstUse": "Fügen Sie zuerst das Ziel hinzu. Verwenden Sie POSTURE_INGEST_TOKEN, das dort gesetzt ist, wo Posture läuft, oder ein API-Token mit der Rolle Bearbeiter aus API-Tokens.",
+    "howAReportIsCompared": "Wie ein Bericht verglichen wird",
+    "eachEngineSReportsReplace": "Die Berichte jeder Engine ersetzen ihre eigenen früheren. Eine Kontrolle, die nicht mehr fehlschlägt, ist behoben; eine, die zum ersten Mal fehlschlägt, ist neu.",
+    "theFirstReportOfAn": "Der erste Bericht einer Engine für ein Ziel übernimmt den Bestand und lässt nie eine Prüfung fehlschlagen.",
+    "aFailedControlIsFound": "Eine fehlgeschlagene Kontrolle wird über Regel und Ressource wiedererkannt.",
+    "theScoreIsTheShare": "Die Bewertung ist der Anteil bestandener Prüfungen: aus der Zusammenfassung des Berichts selbst (Run-Eigenschaft summary mit passed, failed und total) oder aus seinen Ergebnissen der Art pass.",
+    "benchmarkControlAndSectionAre": "Benchmark, Kontrolle und Abschnitt werden gespeichert, wenn der Bericht sie enthält (Eigenschaften benchmark, control, section), sodass Befunde danach gefiltert werden können.",
+    "aCompensatingControlAFalse": "Eine ausgleichende Kontrolle, ein Fehlalarm oder ein akzeptiertes Risiko bleibt mit Begründung beim Befund."
+  },
+  "welcomePage": {
+    "getStarted": "Erste Schritte",
+    "addWhatYouCheckAnd": "Fügen Sie hinzu, was Sie prüfen, und senden Sie einen Bericht.",
+    "waitingForTheFirstTarget": "Warten auf das erste Ziel"
+  },
+  "settingsPage": {
+    "adminsOnly": "Nur für Admins",
+    "askAnAdminOfThis": "Bitten Sie einen Admin dieses Posture um Zugriff.",
+    "signOut": "Abmelden"
+  },
+  "product": {
+    "findings": "Befunde",
+    "targets": "Ziele",
+    "setup": "Einrichtung",
+    "members": "Mitglieder",
+    "signIn": "Anmeldung",
+    "apiTokens": "API-Tokens",
+    "account": "Konto"
+  },
+  "failOn": {
+    "critical": "Kritisch",
+    "highOrWorse": "Hoch oder schlimmer",
+    "mediumOrWorse": "Mittel oder schlimmer",
+    "anyFinding": "Jeder Befund",
+    "neverFail": "Nie fehlschlagen"
+  },
+  "kindLabel": {
+    "cloudAccount": "Cloud-Konto",
+    "kubernetesCluster": "Kubernetes-Cluster"
+  },
+  "plurals": {
+    "target_one": "{{count}} Ziel",
+    "target_other": "{{count}} Ziele",
+    "failingControl_one": "{{count}} fehlschlagende Kontrolle",
+    "failingControl_other": "{{count}} fehlschlagende Kontrollen"
+  },
+  "search": {
+    "target": "Ziel",
+    "control": "Kontrolle",
+    "noBenchmark": "Kein Benchmark"
+  },
+  "common": {
+    "loading": "Wird geladen…"
+  }
+}

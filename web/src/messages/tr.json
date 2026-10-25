@@ -1,0 +1,188 @@
+{
+  "sevCounts": {
+    "none": "Yok"
+  },
+  "findingPanel": {
+    "details": "{{rule}} ayrıntıları",
+    "closeDetails": "Ayrıntıları kapat",
+    "compensatingControl": "Telafi edici kontrol",
+    "falsePositive": "Yanlış alarm",
+    "acceptedRisk": "Kabul edilen risk",
+    "acceptanceExpired": "Kabulün süresi doldu",
+    "until": ", {{value}} tarihine kadar",
+    "changeDecision": "Kararı değiştir",
+    "triage": "Değerlendir",
+    "openAgain": "Yeniden aç",
+    "triage2": "{{rule}} kuralını değerlendirin",
+    "theDecisionStaysWithThis": "Karar raporlar boyunca bu bulguyla kalır; böylece sonraki kontrolü başarısız saymaz. Bir sonraki gözden geçirme için nedenini yazın.",
+    "cancel": "Vazgeç",
+    "saveDecision": "Kararı kaydet",
+    "decision": "Karar",
+    "compensatingControlSomethingElseCovers": "Telafi edici kontrol: başka bir şey bunu karşılıyor",
+    "reason": "Neden",
+    "whyForTheNextReview": "Bir sonraki gözden geçirme için nedeni.",
+    "for": "Süre",
+    "n30Days": "30 gün",
+    "n90Days": "90 gün",
+    "n180Days": "180 gün",
+    "n1Year": "1 yıl"
+  },
+  "findingsTable": {
+    "severity": "Önem",
+    "rule": "Kural",
+    "resource": "Kaynak",
+    "engine": "Motor",
+    "target": "Hedef",
+    "firstSeen": "İlk görülme",
+    "findingViews": "Bulgu görünümleri",
+    "open": "Açık",
+    "decided": "Karar verildi",
+    "fixed": "Düzeltildi",
+    "benchmark": "Kıyaslama",
+    "section": "Bölüm",
+    "searchRuleControlResourceOr": "Kural, kontrol, kaynak ya da mesaj ara",
+    "controlsThatFailMostSevere": "Başarısız olan kontroller, en önemlisi önce",
+    "loadMore": "Daha fazla yükle",
+    "findings": "Bulgular",
+    "noOpenFindings": "Açık bulgu yok",
+    "nothingTriaged": "Değerlendirilen bir şey yok",
+    "nothingFixedYet": "Henüz düzeltilen bir şey yok",
+    "sendAReportToSee": "Bulguları görmek için bir rapor gönderin. Bkz.",
+    "setup": "Kurulum",
+    "nothingMatchesTheseFilters": "Bu filtrelerle eşleşen bir şey yok."
+  },
+  "hostsCoverageNote": {
+    "itsLastGoodVersionIs": "{{error}}Düzeltilene kadar son sağlam sürümü kullanılır ({{path}}).",
+    "theHostsFileIsNot": "Sunucu listesi uygulanmadı",
+    "inTheHostsFileNo_one": "Sunucu listesindeki {{count}} sunucunun yapılandırma taraması yok",
+    "inTheHostsFileNo_other": "Sunucu listesindeki {{count}} sunucunun yapılandırma taraması yok",
+    "whatToDo": "Her biri için, sunucunun adını ya da adresini taşıyan bir sunucu kıyaslaması gönderin."
+  },
+  "findingsPage": {
+    "findings": "Bulgular",
+    "lastReport": "{{plural}} · son rapor {{ago}}",
+    "averageScore": "Ortalama puan",
+    "critical": "Kritik",
+    "high": "Yüksek",
+    "medium": "Orta",
+    "low": "Düşük",
+    "failedChecks7Days": "Başarısız kontroller, 7 gün"
+  },
+  "checkStatus": {
+    "passed": "Başarılı",
+    "failed": "Başarısız"
+  },
+  "scoreBadge": {
+    "noScore": "Puan yok"
+  },
+  "trend": {
+    "theTrendAppearsWithThe": "Eğilim, kontrol sayısı içeren ikinci raporla görünür.",
+    "scoreOfEachEngineOver": "Son {{length}} raporda her motorun puanı"
+  },
+  "targetsPage": {
+    "target": "Hedef",
+    "kind": "Tür",
+    "benchmark": "Kıyaslama",
+    "score": "Puan",
+    "failing": "Başarısız",
+    "check": "Kontrol",
+    "targets": "Hedefler",
+    "aCloudAccountAKubernetes": "Yapılandırması bir kıyaslamaya göre değerlendirilen bir bulut hesabı, bir Kubernetes kümesi ya da bir sunucu grubu.",
+    "addTarget": "Hedef ekle",
+    "noTargetsYet": "Henüz hedef yok",
+    "addTheClusterAccountOr": "Kontrol ettiğiniz kümeyi, hesabı ya da sunucuları ekleyin.",
+    "anAdminAddsWhatIs": "Neyin kontrol edileceğini bir yönetici ekler.",
+    "addATarget": "Hedef ekleyin",
+    "reportsAreSentForIt": "Raporlar onun için adıyla gönderilir.",
+    "cancel": "Vazgeç",
+    "name": "Ad",
+    "lettersDigitsAndCiSends": "Harfler, rakamlar, . _ ve -. CI raporları bu adla gönderir.",
+    "optionalSuchAsCisKubernetes": "İsteğe bağlı, örneğin CIS Kubernetes 1.9."
+  },
+  "targetPage": {
+    "targetNotFound": "Hedef bulunamadı",
+    "itMayHaveBeenDeleted": "Silinmiş olabilir.",
+    "backToTargets": "Hedeflere dön",
+    "report": "Rapor",
+    "engine": "Motor",
+    "score": "Puan",
+    "failing": "Başarısız",
+    "new": "Yeni",
+    "fixed": "Düzeltildi",
+    "check": "Kontrol",
+    "target": "Hedef",
+    "scoreOverTime": "Zaman içinde puan",
+    "theShareOfChecksThat": "Sayı veren her raporda başarılı olan kontrollerin oranı.",
+    "policy": "Politika",
+    "whatACheckTreatsAs": "Bir kontrolün neyi başarısızlık sayacağı. Yalnızca bir motorun daha önce bildirmediği ve kimsenin karar vermediği başarısız kontroller onu başarısız sayabilir.",
+    "failTheCheckFor": "Kontrolü şunun için başarısız say",
+    "benchmark": "Kıyaslama",
+    "aLabelSuchAsCis": "Bir etiket, örneğin CIS Kubernetes 1.9.",
+    "savePolicy": "Politikayı kaydet",
+    "deleteTarget": "Hedefi sil",
+    "delete": "{{name}} silinsin mi?",
+    "itsReportsFindingsAndDecisions": "Raporları, bulguları ve kararları silinir. Daha sonraki bir rapor için hedefin yeniden eklenmesi gerekir.",
+    "cancel": "Vazgeç",
+    "delete2": "Sil",
+    "reports": "Raporlar",
+    "noReports": "Rapor yok",
+    "nothingHasBeenSentFor": "Bu hedef için hiçbir şey gönderilmedi."
+  },
+  "setupPage": {
+    "setup": "Kurulum",
+    "runTrivyKubescapeCheckovOr": "Kontrol ettiğiniz şeye karşı Trivy, kubescape, checkov ya da Prowler çalıştırın ve raporu buraya gönderin. Yanıt, kontrolün başarılı olup olmadığını söyler.",
+    "sendAReport": "Rapor gönderin",
+    "addTheTargetFirstUse": "Önce hedefi ekleyin. Posture'ın çalıştığı yerde ayarlanan POSTURE_INGEST_TOKEN'ı ya da API token'larından düzenleyici rolüne sahip bir API token'ını kullanın.",
+    "howAReportIsCompared": "Bir rapor nasıl karşılaştırılır",
+    "eachEngineSReportsReplace": "Her motorun raporları kendi önceki raporlarının yerini alır. Başarısız olmayı bırakan bir kontrol düzeltilmiştir; ilk kez başarısız olan yenidir.",
+    "theFirstReportOfAn": "Bir motorun bir hedef için ilk raporu mevcut durumu benimser ve bir kontrolü asla başarısız saymaz.",
+    "aFailedControlIsFound": "Başarısız bir kontrol, kural ve kaynağa göre yeniden bulunur.",
+    "theScoreIsTheShare": "Puan, başarılı olan kontrollerin oranıdır: raporun kendi özetinden (passed, failed ve total içeren run özelliği summary) ya da pass türündeki sonuçlarından.",
+    "benchmarkControlAndSectionAre": "Rapor içeriyorsa kıyaslama, kontrol ve bölüm tutulur (benchmark, control, section özellikleri); böylece bulgular bunlara göre süzülebilir.",
+    "aCompensatingControlAFalse": "Telafi edici bir kontrol, yanlış alarm ya da kabul edilen bir risk, nedeniyle birlikte bulguyla kalır."
+  },
+  "welcomePage": {
+    "getStarted": "Başlayın",
+    "addWhatYouCheckAnd": "Kontrol ettiğiniz şeyi ekleyin ve bir rapor gönderin.",
+    "waitingForTheFirstTarget": "İlk hedef bekleniyor"
+  },
+  "settingsPage": {
+    "adminsOnly": "Yalnızca yöneticiler",
+    "askAnAdminOfThis": "Erişim için bu Posture'ın bir yöneticisine başvurun.",
+    "signOut": "Çıkış yap"
+  },
+  "product": {
+    "findings": "Bulgular",
+    "targets": "Hedefler",
+    "setup": "Kurulum",
+    "members": "Üyeler",
+    "signIn": "Oturum açma",
+    "apiTokens": "API token'ları",
+    "account": "Hesap"
+  },
+  "failOn": {
+    "critical": "Kritik",
+    "highOrWorse": "Yüksek ya da daha kötü",
+    "mediumOrWorse": "Orta ya da daha kötü",
+    "anyFinding": "Her bulgu",
+    "neverFail": "Asla başarısız sayma"
+  },
+  "kindLabel": {
+    "cloudAccount": "Bulut hesabı",
+    "kubernetesCluster": "Kubernetes kümesi"
+  },
+  "plurals": {
+    "target_one": "{{count}} hedef",
+    "target_other": "{{count}} hedef",
+    "failingControl_one": "{{count}} başarısız kontrol",
+    "failingControl_other": "{{count}} başarısız kontrol"
+  },
+  "search": {
+    "target": "Hedef",
+    "control": "Kontrol",
+    "noBenchmark": "Kıyaslama yok"
+  },
+  "common": {
+    "loading": "Yükleniyor…"
+  }
+}

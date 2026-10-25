@@ -22,16 +22,19 @@ import {
   StatusBadge,
   Tabs,
   TextField,
+  TimeSeriesChart,
   usePath,
   type Column,
   type ProductId,
   useThemePreference,
   useAgo,
+  toLocale,
+  useLocalePreference,
 } from "@openasy/ui";
-import { AccountSettings, AuthGate, MembersSettings, SignInSettings, TokensSettings, useAuth, useInstallBrand } from "@openasy/auth/react";
+import { AccountSettings, AuthGate, MembersSettings, SignInSettings, TokensSettings, useAccountMenu, useAuth, useInstallBrand } from "@openasy/auth/react";
 import colophon from "virtual:openasy-colophon";
-import { Bug, CircleSlash, Crosshair, KeyRound, LogIn, LogOut, Plus, Settings2, Trash2, UserRound, Users, X } from "lucide-react";
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Bug, CircleSlash, Crosshair, KeyRound, LogIn, LogOut, Plus, Trash2, UserRound, Users, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   api,
   MfaSetupRequired,
@@ -48,6 +51,7 @@ import {
   type Target,
 } from "./api.ts";
 import { useT, type T } from "./i18n.ts";
+import { search } from "./search.ts";
 
 const PAGES = ["targets", "setup", "account", "members", "signin", "tokens", "about"] as const;
 type Route = { page: "findings" | (typeof PAGES)[number] } | { page: "target"; id: string };
@@ -444,15 +448,8 @@ function HostsCoverageNote({ file }: { file?: HostsCoverage | null }) {
   }
   if (!file.missing.length) return null;
   return (
-    <Callout
-      tone="warning"
-      title={t("hostsCoverageNote.inTheHostsFileNo", {
-        length: file.missing.length,
-        value: file.missing.length === 1 ? "server" : "servers",
-        value2: file.missing.length === 1 ? "has" : "have",
-      })}
-    >
-      {file.missing.map((h) => h.name).join(", ")}. Send a host benchmark for each, named as the server or its address.
+    <Callout tone="warning" title={t("hostsCoverageNote.inTheHostsFileNo", { count: file.missing.length })}>
+      {file.missing.map((h) => h.name).join(", ")}. {t("hostsCoverageNote.whatToDo")}
     </Callout>
   );
 }
@@ -500,44 +497,25 @@ function ScoreBadge({ score }: { score: number | null }) {
   return <StatusBadge tone={score >= 90 ? "success" : score >= 70 ? "warning" : "danger"}>{score}%</StatusBadge>;
 }
 
-/** The score of each report as a line, drawn here because it is one polyline and no axis the product needs. */
+/** The score of each engine as a line, oldest report first: an engine keeps its last score until it reports again. */
 function Trend({ points }: { points: History["points"] }) {
   const t = useT();
-  if (points.length < 2) return <p className="m-0 text-sm text-fg-muted">{t("trend.theTrendAppearsWithThe")}</p>;
-  const w = 600;
-  const h = 120;
-  const x = (i: number) => (i / (points.length - 1)) * (w - 20) + 10;
-  const y = (v: number) => h - 10 - (v / 100) * (h - 20);
-  const first = points[0]!;
-  const last = points[points.length - 1]!;
+  const engines = [...new Set(points.map((p) => p.engine))];
+  const last = new Map<string, number>();
+  const rows = points.map((p) => (last.set(p.engine, p.score), engines.map((e) => last.get(e))));
+  // The line starts once every engine has a score, so none is drawn as 0 before its first report.
+  const from = rows.findIndex((r) => r.every((v) => v !== undefined));
+  if (from < 0 || points.length - from < 2) return <p className="m-0 text-sm text-fg-muted">{t("trend.theTrendAppearsWithThe")}</p>;
   return (
-    <figure className="m-0">
-      <svg
-        viewBox={`0 0 ${w} ${h}`}
-        role="img"
-        aria-label={t("trend.scoreFromToOverReports", { score: first.score, score2: last.score, length: points.length })}
-        className="h-32 w-full text-accent"
-      >
-        <line x1="10" x2={w - 10} y1={y(100)} y2={y(100)} stroke="currentColor" strokeOpacity="0.15" />
-        <line x1="10" x2={w - 10} y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity="0.15" />
-        <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points.map((p, i) => `${x(i)},${y(p.score)}`).join(" ")} />
-        {points.map((p, i) => (
-          <circle key={`${p.at}-${i}`} cx={x(i)} cy={y(p.score)} r="3" fill="currentColor">
-            <title>
-              {t("trend.onOfPassed", { score: p.score, value: new Date(p.at).toLocaleDateString(), engine: p.engine, passed: p.passed, total: p.total })}
-            </title>
-          </circle>
-        ))}
-      </svg>
-      <figcaption className="text-xs text-fg-muted">
-        {t("trend.onToOn", {
-          score: first.score,
-          value: new Date(first.at).toLocaleDateString(),
-          score2: last.score,
-          value2: new Date(last.at).toLocaleDateString(),
-        })}
-      </figcaption>
-    </figure>
+    <TimeSeriesChart
+      label={t("trend.scoreOfEachEngineOver", { length: points.length - from })}
+      series={engines.map((e, i) => ({ id: e, name: e, data: rows.slice(from).map((r) => r[i]!) }))}
+      labels={points.slice(from).map((p) => new Date(p.at).toLocaleDateString())}
+      yMax={100}
+      format={(v) => `${v}%`}
+      area={false}
+      height={160}
+    />
   );
 }
 
@@ -740,7 +718,7 @@ function TargetPage({ call, id, reload }: { call: Call; id: string; reload: () =
         actions={target && <ScoreBadge score={target.score} />}
       />
       <Panel title={msg("targetPage.scoreOverTime")} description={msg("targetPage.theShareOfChecksThat")}>
-        {history ? <Trend points={history.points} /> : <p className="m-0 text-sm text-fg-muted">Loading…</p>}
+        {history ? <Trend points={history.points} /> : <p className="m-0 text-sm text-fg-muted">{msg("common.loading")}</p>}
       </Panel>
       {can("admin") && target && (
         <Panel title={msg("targetPage.policy")} description={msg("targetPage.whatACheckTreatsAs")}>
@@ -886,11 +864,14 @@ function SettingsPage({ page }: { page: "account" | "members" | "signin" | "toke
 function Product() {
   const msg = useT();
   const [theme, setTheme] = useThemePreference();
+  const [, setLocale] = useLocalePreference();
   const { me, can } = useAuth();
+  const account = useAccountMenu();
   const route = parseRoute(usePath());
   const [summary, setSummary] = useState<Summary>();
   const [products, setProducts] = useState<Array<ProductLink & { id: ProductId }>>([]);
   const call = useApi();
+  const onSearch = useMemo(() => search(call, msg), [call, msg]);
 
   // The install's other products (OPENASY_PRODUCTS), for the switcher; ids this UI does not know are left out.
   useEffect(() => {
@@ -913,7 +894,6 @@ function Product() {
     { id: "targets", label: msg("product.targets"), icon: Crosshair, count: summary?.targets },
   ];
   const footerNav = [
-    { id: "setup", label: msg("product.setup"), icon: Settings2 },
     ...(can("admin")
       ? [
           { id: "members", label: msg("product.members"), icon: Users },
@@ -929,6 +909,7 @@ function Product() {
   return (
     <AppShell
       product="posture"
+      onSearch={onSearch}
       about={colophon}
       nav={nav}
       activeNav={active}
@@ -938,10 +919,12 @@ function Product() {
         const to = products.find((p) => p.id === id);
         if (to) window.location.assign(to.url);
       }}
-      footerNav={footerNav}
-      user={{ name: me.user.name, role: roleName }}
+      footerNav={account.settings(footerNav)}
+      setup
+      user={{ name: me.user.name, role: roleName, ...account.user }}
       theme={theme}
       onThemeChange={setTheme}
+      onLanguageChange={(code) => setLocale(toLocale(code))}
     >
       {route.page === "findings" && summary && summary.targets === 0 ? (
         <WelcomePage />
@@ -963,9 +946,10 @@ function Product() {
 export function App() {
   const installBrand = useInstallBrand();
   const [theme] = useThemePreference();
+  const [locale] = useLocalePreference();
   return (
     // The install's brand from config/brand.env (ADR 0053); OpenAsy's own look where it sets none.
-    <BrandProvider theme={theme} brand={{ name: "OpenAsy", organization: undefined, ...installBrand }} className="min-h-screen">
+    <BrandProvider theme={theme} locale={locale} brand={{ name: "OpenAsy", organization: undefined, ...installBrand }} className="min-h-screen">
       <AuthGate product="OpenAsy Posture">
         <Product />
       </AuthGate>

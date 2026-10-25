@@ -54,7 +54,9 @@
   "hostsCoverageNote": {
     "itsLastGoodVersionIs": "{{error}}Its last good version is used until it is fixed ({{path}}).",
     "theHostsFileIsNot": "The hosts file is not applied",
-    "inTheHostsFileNo": "{{length}} {{value}} in the hosts file {{value2}} no posture scan"
+    "inTheHostsFileNo_one": "{{count}} server in the hosts file has no posture scan",
+    "inTheHostsFileNo_other": "{{count}} servers in the hosts file have no posture scan",
+    "whatToDo": "Send a host benchmark for each, named as the server or its address."
   },
   "findingsPage": {
     "findings": "Findings",
@@ -75,9 +77,7 @@
   },
   "trend": {
     "theTrendAppearsWithThe": "The trend appears with the second report that has a check count.",
-    "scoreFromToOverReports": "Score from {{score}}% to {{score2}}% over {{length}} reports",
-    "onOfPassed": "{{score}}% on {{value}} ({{engine}}, {{passed}} of {{total}} passed)",
-    "onToOn": "{{score}}% on {{value}}to {{score2}}% on {{value2}}"
+    "scoreOfEachEngineOver": "Score of each engine over the last {{length}} reports"
   },
   "targetsPage": {
     "target": "Target",
@@ -176,5 +176,13 @@
     "target_other": "{{count}} targets",
     "failingControl_one": "{{count}} failing control",
     "failingControl_other": "{{count}} failing controls"
+  },
+  "search": {
+    "target": "Target",
+    "control": "Control",
+    "noBenchmark": "No benchmark"
+  },
+  "common": {
+    "loading": "Loading…"
   }
 }
