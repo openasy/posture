@@ -76,7 +76,7 @@ import {
   type Summary,
   type Target,
 } from "./api.ts";
-import { useT, type T } from "./i18n.ts";
+import { useT, type T, viewerLocale, setViewerLocale } from "./i18n.ts";
 import { search } from "./search.ts";
 
 const PAGES = ["targets", "setup", "account", "members", "signin", "tokens", "about"] as const;
@@ -204,7 +204,7 @@ function FindingPanel({ finding, call, onClose, onChanged }: { finding: Finding;
             <span className="text-fg-muted">
               {t.by ? `${t.by}, ` : ""}
               {ago(t.at)}
-              {t.expiresAt ? msg("findingPanel.until", { value: new Date(t.expiresAt).toLocaleDateString() }) : ""}
+              {t.expiresAt ? msg("findingPanel.until", { value: new Date(t.expiresAt).toLocaleDateString(viewerLocale()) }) : ""}
             </span>
           </div>
         )}
@@ -330,7 +330,7 @@ function FindingsTable({
       width: "30%",
       cell: (f) => (
         <span className="flex min-w-0 flex-col">
-          <button type="button" onClick={() => setOpen(f)} className="posture-wrap self-start text-left font-mono text-xs font-medium text-fg hover:underline">
+          <button type="button" onClick={() => setOpen(f)} className="posture-wrap self-start text-start font-mono text-xs font-medium text-fg hover:underline">
             {f.rule}
           </button>
           <span className="posture-clamp text-xs text-fg-muted" title={f.message}>
@@ -487,7 +487,7 @@ function OverviewPage({ call, summary }: { call: Call; summary?: Summary }) {
   const [o, setO] = useState<Overview>();
   useEffect(() => void call<Overview>("/api/v1/overview").then(setO, () => {}), [call, summary]);
   const s = summary;
-  const day = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  const day = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(viewerLocale(), { month: "short", day: "numeric", timeZone: "UTC" });
   const color = (sev: Severity) => TONE_COLORS[SEVERITY_META[sev].tone];
   const checks = o ? o.checks.days30.passed + o.checks.days30.failed : 0;
   // Days before the first score are left out, rather than drawn as 0%.
@@ -686,7 +686,7 @@ function Trend({ points }: { points: History["points"] }) {
     <TimeSeriesChart
       label={t("trend.scoreOfEachEngineOver", { length: points.length - from })}
       series={engines.map((e, i) => ({ id: e, name: e, data: rows.slice(from).map((r) => r[i]!) }))}
-      labels={points.slice(from).map((p) => new Date(p.at).toLocaleDateString())}
+      labels={points.slice(from).map((p) => new Date(p.at).toLocaleDateString(viewerLocale()))}
       yMax={100}
       format={(v) => `${v}%`}
       area={false}
@@ -1126,6 +1126,7 @@ export function App() {
   const installBrand = useInstallBrand();
   const [theme] = useThemePreference();
   const [locale] = useLocalePreference();
+  setViewerLocale(locale);
   return (
     // The install's brand from config/brand.env (ADR 0053); OpenAsy's own look where it sets none.
     <BrandProvider theme={theme} locale={locale} brand={{ name: "OpenAsy", organization: undefined, ...installBrand }} className="min-h-screen">
